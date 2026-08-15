@@ -1,6 +1,6 @@
 class PlayerCar {
-    constructor(scene, controls, neighborhood) {
-        this.scene = scene;
+    constructor(sceneManager, controls, neighborhood) {
+        this.sceneManager = sceneManager; // Store the whole manager, not just the scene
         this.controls = controls;
         this.neighborhood = neighborhood;
         this.mesh = null;
@@ -55,7 +55,8 @@ class PlayerCar {
         });
         
         this.mesh = carGroup;
-        this.scene.add(this.mesh);
+        // Add to the scene via the manager
+        this.sceneManager.scene.add(this.mesh);
     }
     
     update(delta) {
@@ -112,20 +113,24 @@ class PlayerCar {
             if (input.right) this.mesh.rotation.y -= this.steerSpeed;
         }
         
+        // Ensure matrix is up to date before camera calculation
+        this.mesh.updateMatrixWorld();
+        
         this.updateCamera();
     }
     
     updateCamera() {
-        if (!this.mesh || !this.scene.camera) return;
+        // Fix: Access camera through sceneManager
+        if (!this.mesh || !this.sceneManager.camera) return;
         
         const relativeOffset = new THREE.Vector3(0, 3.5, 8);
         const cameraTarget = relativeOffset.applyMatrix4(this.mesh.matrixWorld);
         
-        this.scene.camera.position.lerp(cameraTarget, 0.1);
+        this.sceneManager.camera.position.lerp(cameraTarget, 0.1);
         
         const lookTarget = new THREE.Vector3(0, 1, -5);
         lookTarget.applyMatrix4(this.mesh.matrixWorld);
-        this.scene.camera.lookAt(lookTarget);
+        this.sceneManager.camera.lookAt(lookTarget);
     }
     
     getPosition() {
@@ -133,6 +138,6 @@ class PlayerCar {
     }
     
     dispose() {
-        if (this.mesh) this.scene.remove(this.mesh);
+        if (this.mesh) this.sceneManager.scene.remove(this.mesh);
     }
 }

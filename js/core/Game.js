@@ -27,9 +27,9 @@ class Game {
             this.sceneManager = new SceneManager(this.container);
             this.controls = new Controls();
             this.playerCar = new PlayerCar(
-                this.sceneManager.scene, 
+                this.sceneManager, // Pass the manager
                 this.controls,
-                this.sceneManager.neighborhood // Pass neighborhood for collision
+                this.sceneManager.neighborhood
             );
             this.hud = new HUD(this);
             
