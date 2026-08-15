@@ -1,0 +1,142 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: #000;
+    touch-action: none;
+}
+
+#game-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* Loading Screen */
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    transition: opacity 0.5s;
+}
+
+#loading-screen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.loading-content {
+    text-align: center;
+}
+
+.game-title {
+    font-size: clamp(32px, 10vw, 64px);
+    font-weight: 900;    color: #fff;
+    text-shadow: 0 0 20px rgba(255, 51, 51, 0.8);
+    letter-spacing: 4px;
+    margin-bottom: 20px;
+}
+
+.loading-text {
+    color: #888;
+    font-size: 16px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+/* Error Screen */
+#error-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1001;
+}
+
+#error-screen.show {
+    display: flex;
+}
+
+.error-content {
+    text-align: center;
+    padding: 20px;
+}
+
+.error-content p {
+    color: #ff5555;
+    font-size: 18px;
+    margin: 20px 0;
+}
+
+#retry-btn {
+    padding: 16px 32px;
+    font-size: 18px;
+    background: #ff3333;    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+#retry-btn:hover {
+    background: #ff5555;
+}
+
+/* Orientation Warning */
+@media screen and (orientation: portrait) {
+    body::before {
+        content: 'Please rotate your device to landscape';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(16px, 4vw, 24px);
+        z-index: 9999;
+        text-align: center;
+        padding: 20px;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+}
+
+/* Safe area handling */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
