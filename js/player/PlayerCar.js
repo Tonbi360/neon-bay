@@ -20,11 +20,7 @@ class PlayerCar {
         
         // Main body
         const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4.2);
-        const bodyMat = new THREE.MeshStandardMaterial({ 
-            color: 0xcc0000, 
-            metalness: 0.6, 
-            roughness: 0.4 
-        });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcc0000, metalness: 0.6, roughness: 0.4 });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.6;
         body.castShadow = true;
@@ -32,11 +28,7 @@ class PlayerCar {
         
         // Cabin
         const cabinGeo = new THREE.BoxGeometry(1.8, 0.7, 2.2);
-        const cabinMat = new THREE.MeshStandardMaterial({ 
-            color: 0x1a1a1a, 
-            metalness: 0.9, 
-            roughness: 0.1 
-        });
+        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.9, roughness: 0.1 });
         const cabin = new THREE.Mesh(cabinGeo, cabinMat);
         cabin.position.set(0, 1.3, 0.2);
         cabin.castShadow = true;

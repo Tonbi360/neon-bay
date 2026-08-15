@@ -8,7 +8,10 @@ class Game {
         this.sceneManager = null;
         this.controls = null;
         this.playerCar = null;
+        this.hud = null;
+        
         this.isRunning = false;
+        this.isPaused = false;
         this.isLoaded = false;
         
         this.retryBtn.addEventListener('click', () => this.restart());
@@ -19,13 +22,12 @@ class Game {
             console.log('[Game] Initializing...');
             this.loadingScreen.classList.remove('hidden');
             
-            if (typeof THREE === 'undefined') {
-                throw new Error('Three.js not loaded');
-            }
+            if (typeof THREE === 'undefined') throw new Error('Three.js not loaded');
             
             this.sceneManager = new SceneManager(this.container);
-            this.controls = new Controls(); // Initialize controls
-            this.playerCar = new PlayerCar(this.sceneManager, this.controls); // Pass controls
+            this.controls = new Controls();
+            this.playerCar = new PlayerCar(this.sceneManager, this.controls);
+            this.hud = new HUD(this);
             
             setTimeout(() => {
                 this.loadingScreen.classList.add('hidden');
@@ -40,15 +42,20 @@ class Game {
     
     start() {
         if (this.isRunning) return;
-        
         this.isRunning = true;
         this.animate();
-        console.log('[Game] Started');
+    }
+
+    pause() {
+        this.isPaused = true;
+    }
+
+    resume() {
+        this.isPaused = false;
     }
     
     stop() {
         this.isRunning = false;
-        console.log('[Game] Stopped');
     }
     
     animate() {
@@ -56,11 +63,13 @@ class Game {
         
         requestAnimationFrame(() => this.animate());
         
+        if (this.isPaused) return; // Skip updates when paused
+        
         const delta = this.sceneManager.getDelta();
         
-        // Update player car
         if (this.playerCar) {
             this.playerCar.update(delta);
+            this.hud.updateSpeed(this.playerCar.speed);
         }
         
         this.sceneManager.render();
@@ -76,18 +85,12 @@ class Game {
     }
     
     async restart() {
-        console.log('[Game] Restarting...');
         this.hideError();
-        
-        if (this.playerCar) {
-            this.playerCar.dispose();
-        }
-        
-        if (this.sceneManager) {
-            this.sceneManager.dispose();
-        }
+        if (this.playerCar) this.playerCar.dispose();
+        if (this.sceneManager) this.sceneManager.dispose();
         
         this.isRunning = false;
+        this.isPaused = false;
         this.isLoaded = false;
         
         await this.init();

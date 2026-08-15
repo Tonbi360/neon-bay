@@ -1,24 +1,25 @@
 class Controls {
     constructor() {
         this.input = { left: false, right: false, acc: false, brk: false };
-        this.createButtons();
+        this.setupButtons();
         this.setupKeyboard();
     }
 
-    createButtons() {
-        const container = document.createElement('div');
-        container.id = 'mobile-controls';
-        
-        // Helper to create a button
-        const createBtn = (id, text, inputKey) => {
-            const btn = document.createElement('button');
-            btn.id = id;
-            btn.textContent = text;
-            btn.className = 'control-btn';
+    setupButtons() {
+        const bindBtn = (id, key) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
             
-            // Touch events
-            const press = (e) => { e.preventDefault(); this.input[inputKey] = true; btn.classList.add('active'); };
-            const release = (e) => { e.preventDefault(); this.input[inputKey] = false; btn.classList.remove('active'); };
+            const press = (e) => { 
+                if(e) e.preventDefault(); 
+                this.input[key] = true; 
+                btn.classList.add('active'); 
+            };
+            const release = (e) => { 
+                if(e) e.preventDefault(); 
+                this.input[key] = false; 
+                btn.classList.remove('active'); 
+            };
             
             btn.addEventListener('touchstart', press, { passive: false });
             btn.addEventListener('touchend', release, { passive: false });
@@ -26,32 +27,26 @@ class Controls {
             btn.addEventListener('mousedown', press);
             btn.addEventListener('mouseup', release);
             btn.addEventListener('mouseleave', release);
-            
-            container.appendChild(btn);
-            return btn;
         };
 
-        // Layout: Left/Right on bottom corners, Acc/Brk on bottom right stacked
-        createBtn('btn-left', '◀', 'left').style.cssText = 'position: absolute; bottom: 30px; left: 30px;';
-        createBtn('btn-right', '▶', 'right').style.cssText = 'position: absolute; bottom: 30px; left: 140px;';
-        createBtn('btn-brk', 'BRK', 'brk').style.cssText = 'position: absolute; bottom: 30px; right: 140px;';
-        createBtn('btn-acc', 'ACC', 'acc').style.cssText = 'position: absolute; bottom: 30px; right: 30px;';
-
-        document.body.appendChild(container);
+        bindBtn('btn-left', 'left');
+        bindBtn('btn-right', 'right');
+        bindBtn('btn-acc', 'acc');
+        bindBtn('btn-brk', 'brk');
     }
 
     setupKeyboard() {
         window.addEventListener('keydown', (e) => {
-            if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.input.left = true;
-            if (e.code === 'ArrowRight' || e.code === 'KeyD') this.input.right = true;
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.acc = true;
-            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') this.input.brk = true;
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') { this.input.left = true; document.getElementById('btn-left')?.classList.add('active'); }
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') { this.input.right = true; document.getElementById('btn-right')?.classList.add('active'); }
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') { this.input.acc = true; document.getElementById('btn-acc')?.classList.add('active'); }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') { this.input.brk = true; document.getElementById('btn-brk')?.classList.add('active'); }
         });
         window.addEventListener('keyup', (e) => {
-            if (e.code === 'ArrowLeft' || e.code === 'KeyA') this.input.left = false;
-            if (e.code === 'ArrowRight' || e.code === 'KeyD') this.input.right = false;
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') this.input.acc = false;
-            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') this.input.brk = false;
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') { this.input.left = false; document.getElementById('btn-left')?.classList.remove('active'); }
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') { this.input.right = false; document.getElementById('btn-right')?.classList.remove('active'); }
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') { this.input.acc = false; document.getElementById('btn-acc')?.classList.remove('active'); }
+            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') { this.input.brk = false; document.getElementById('btn-brk')?.classList.remove('active'); }
         });
     }
 }
