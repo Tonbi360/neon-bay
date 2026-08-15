@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#ff3333">
+    <meta name="description" content="Neon Bay: No Rules - Open World Crime Sandbox">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+    <title>Neon Bay</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loading-content">
+            <h1 class="game-title">NEON BAY</h1>
+            <p class="loading-text">Loading...</p>
+        </div>
+    </div>
+
+    <div id="error-screen" style="display: none;">
+        <div class="error-content">
+            <h1 class="game-title">NEON BAY</h1>
+            <p>Something went wrong.</p>
+            <button id="retry-btn">RETRY</button>
+        </div>
+    </div>
+
+    <div id="game-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="js/core/SceneManager.js"></script>
+    <script src="js/core/Game.js"></script>
+    <script src="js/main.js"></script>
+
+    <script>
+        // Service Worker Registration
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js', { scope: './' })
+                    .then(registration => {
+                        console.log('SW registered:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('SW registration failed:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
