@@ -6,11 +6,6 @@ class SceneManager {
         this.renderer = null;
         this.clock = new THREE.Clock();
         
-        this.ground = null;
-        this.road = null;
-        this.centerLines = [];
-        this.edgeLines = [];
-        
         this.init();
     }
     
@@ -18,7 +13,7 @@ class SceneManager {
         // Scene
         this.scene = new THREE.Scene();
         this.scene.background = new THREE.Color(0x87CEEB);
-        this.scene.fog = new THREE.Fog(0x87CEEB, 50, 300);
+        this.scene.fog = new THREE.Fog(0x87CEEB, 100, 400);
         
         // Camera
         this.camera = new THREE.PerspectiveCamera(
@@ -50,10 +45,10 @@ class SceneManager {
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
         dirLight.position.set(50, 100, 50);
         dirLight.castShadow = true;
-        dirLight.shadow.camera.left = -50;
-        dirLight.shadow.camera.right = 50;
-        dirLight.shadow.camera.top = 50;
-        dirLight.shadow.camera.bottom = -50;
+        dirLight.shadow.camera.left = -100;
+        dirLight.shadow.camera.right = 100;
+        dirLight.shadow.camera.top = 100;
+        dirLight.shadow.camera.bottom = -100;
         dirLight.shadow.mapSize.width = 1024;
         dirLight.shadow.mapSize.height = 1024;
         this.scene.add(dirLight);
@@ -66,73 +61,69 @@ class SceneManager {
     }
     
     setupTestWorld() {
-        // Massive Ground Plane
-        const groundGeometry = new THREE.PlaneGeometry(4000, 4000);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x3a5f3a, roughness: 0.9 });
-        this.ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        this.ground.rotation.x = -Math.PI / 2;
-        this.ground.receiveShadow = true;
-        this.scene.add(this.ground);
+        // FINITE Ground (500x500 units - large but finite)
+        const groundGeometry = new THREE.PlaneGeometry(500, 500);
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x3a5f3a, 
+            roughness: 0.9 
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.receiveShadow = true;
+        this.scene.add(ground);
         
-        // Massive Road Plane
-        const roadGeometry = new THREE.PlaneGeometry(12, 4000);
-        const roadMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
-        this.road = new THREE.Mesh(roadGeometry, roadMaterial);
-        this.road.rotation.x = -Math.PI / 2;
-        this.road.position.y = 0.01;
-        this.road.receiveShadow = true;
-        this.scene.add(this.road);
+        // FINITE Road (12 wide x 400 long)
+        const roadGeometry = new THREE.PlaneGeometry(12, 400);
+        const roadMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x333333, 
+            roughness: 0.8 
+        });
+        const road = new THREE.Mesh(roadGeometry, roadMaterial);
+        road.rotation.x = -Math.PI / 2;
+        road.position.y = 0.01;
+        road.receiveShadow = true;
+        this.scene.add(road);
         
-        // Center Lines (Yellow dashed)
+        // Center Lines (Yellow dashed) - Only 20 segments total
         const lineMaterial = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-        for (let i = 0; i < 40; i++) {
-            const line = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 6), lineMaterial);
+        for (let i = -190; i < 200; i += 20) {
+            const line = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.3, 8),
+                lineMaterial
+            );
             line.rotation.x = -Math.PI / 2;
-            line.position.y = 0.02;
-            line.position.z = (i - 20) * 20;
+            line.position.set(0, 0.02, i);
             this.scene.add(line);
-            this.centerLines.push(line);
         }
         
-        // Edge Lines (White solid)
+        // Edge Lines (White solid) - Just 2 long lines
         const edgeMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff });
         [-5.85, 5.85].forEach(x => {
-            for (let i = 0; i < 40; i++) {
-                const line = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 20), edgeMaterial);
-                line.rotation.x = -Math.PI / 2;
-                line.position.y = 0.02;
-                line.position.x = x;
-                line.position.z = (i - 20) * 20;
-                this.scene.add(line);
-                this.edgeLines.push(line);
-            }
-        });
-    }
-    
-    // Called every frame to keep the world under the car
-    updateEnvironment(carPosition) {
-        if (!this.ground || !this.road) return;
-        
-        // Snap ground and road to car's X/Z so we never fall off
-        this.ground.position.x = carPosition.x;
-        this.ground.position.z = carPosition.z;
-        
-        this.road.position.x = carPosition.x;
-        this.road.position.z = carPosition.z;
-        
-        // Update lines to create infinite road illusion
-        const segmentLength = 20;
-        const baseZ = Math.floor(carPosition.z / segmentLength) * segmentLength;
-        
-        this.centerLines.forEach((line, i) => {
-            line.position.x = carPosition.x;
-            line.position.z = baseZ + (i - 20) * segmentLength;
+            const line = new THREE.Mesh(
+                new THREE.PlaneGeometry(0.25, 400),
+                edgeMaterial
+            );
+            line.rotation.x = -Math.PI / 2;
+            line.position.set(x, 0.02, 0);
+            this.scene.add(line);
         });
         
-        this.edgeLines.forEach((line, i) => {
-            const isLeft = i % 2 === 0;
-            line.position.x = carPosition.x + (isLeft ? -5.85 : 5.85);
-            line.position.z = baseZ + (Math.floor(i / 2) - 10) * segmentLength;
+        // Visual boundary markers (simple fences at edges)
+        const fenceMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+        const fencePositions = [
+            [-250, 0, -250], [250, 0, -250],
+            [-250, 0, 250], [250, 0, 250]
+        ];
+        
+        fencePositions.forEach(pos => {
+            const fence = new THREE.Mesh(
+                new THREE.BoxGeometry(2, 3, 2),
+                fenceMaterial
+            );
+            fence.position.set(...pos);
+            fence.position.y = 1.5;
+            fence.castShadow = true;
+            this.scene.add(fence);
         });
     }
     
