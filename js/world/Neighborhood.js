@@ -2,6 +2,7 @@ class Neighborhood {
     constructor(scene) {
         this.scene = scene;
         this.materials = this.createMaterials();
+        this.collisionBoxes = [];
         this.build();
     }
 
@@ -25,22 +26,17 @@ class Neighborhood {
     }
 
     build() {
-        // 1. Ground & Base
         this.createGround();
-        
-        // 2. Roads & Intersection
         this.createRoads();
-        
-        // 3. Sidewalks
         this.createSidewalks();
         
-        // 4. Buildings (Hand-placed)
-        this.createNeonDiner(18, 18);       // Top Right
-        this.createCornerStore(-18, 18);    // Top Left
-        this.createGasStation(18, -25);     // Bottom Right
-        this.createApartments(-20, -20);    // Bottom Left (set back)
+        // Buildings with collision
+        this.createNeonDiner(18, 18);
+        this.createCornerStore(-18, 18);
+        this.createGasStation(18, -25);
+        this.createApartments(-20, -20);
         
-        // 5. Props (Hand-placed)
+        // Props (non-collidable for now)
         this.createStreetlight(8, 8);
         this.createStreetlight(-8, 8);
         this.createStreetlight(8, -8);
@@ -56,8 +52,47 @@ class Neighborhood {
         this.createFireHydrant(-7, -15);
     }
 
+    // Helper to add collision box
+    addCollisionBox(x, z, width, depth, rotation = 0) {
+        this.collisionBoxes.push({
+            x: x,
+            z: z,
+            width: width,
+            depth: depth,
+            rotation: rotation
+        });
+    }
+
+    // Check if point is inside any collision box
+    checkCollision(x, z, radius = 1.5) {
+        for (let box of this.collisionBoxes) {
+            // Transform car position into box's local space
+            const dx = x - box.x;
+            const dz = z - box.z;
+            
+            // Rotate point to align with box
+            const cos = Math.cos(-box.rotation);
+            const sin = Math.sin(-box.rotation);
+            const localX = dx * cos - dz * sin;
+            const localZ = dx * sin + dz * cos;
+            
+            // Check AABB collision
+            const halfWidth = box.width / 2 + radius;
+            const halfDepth = box.depth / 2 + radius;
+            
+            if (Math.abs(localX) < halfWidth && Math.abs(localZ) < halfDepth) {
+                return {
+                    collided: true,
+                    box: box,
+                    localX: localX,
+                    localZ: localZ
+                };
+            }
+        }
+        return { collided: false };
+    }
+
     createGround() {
-        // Large grass plane
         const ground = new THREE.Mesh(
             new THREE.PlaneGeometry(500, 500),
             this.materials.grass
@@ -66,7 +101,6 @@ class Neighborhood {
         ground.receiveShadow = true;
         this.scene.add(ground);
 
-        // Concrete lot under the neighborhood
         const lot = new THREE.Mesh(
             new THREE.PlaneGeometry(120, 120),
             this.materials.concrete
@@ -78,7 +112,6 @@ class Neighborhood {
     }
 
     createRoads() {
-        // Main Road (North-South)
         const mainRoad = new THREE.Mesh(
             new THREE.PlaneGeometry(12, 400),
             this.materials.road
@@ -88,7 +121,6 @@ class Neighborhood {
         mainRoad.receiveShadow = true;
         this.scene.add(mainRoad);
 
-        // Cross Road (East-West)
         const crossRoad = new THREE.Mesh(
             new THREE.PlaneGeometry(400, 12),
             this.materials.road
@@ -98,13 +130,9 @@ class Neighborhood {
         crossRoad.receiveShadow = true;
         this.scene.add(crossRoad);
 
-        // Road Markings
         const lineMat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-        const whiteLineMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-
-        // Center dashed lines
         for (let i = -190; i < 200; i += 15) {
-            if (Math.abs(i) < 8) continue; // Skip intersection center
+            if (Math.abs(i) < 8) continue;
             const line = new THREE.Mesh(new THREE.PlaneGeometry(0.3, 8), lineMat);
             line.rotation.x = -Math.PI / 2;
             line.position.set(0, 0.02, i);
@@ -116,7 +144,6 @@ class Neighborhood {
             this.scene.add(lineX);
         }
 
-        // Crosswalks at intersection
         const crosswalkMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
         for (let i = -5; i <= 5; i += 2) {
             const cw1 = new THREE.Mesh(new THREE.PlaneGeometry(1, 12), crosswalkMat);
@@ -151,36 +178,34 @@ class Neighborhood {
         });
     }
 
-    // --- BUILDINGS ---
-
     createNeonDiner(x, z) {
         const group = new THREE.Group();
         
-        // Main building
         const base = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 12), this.materials.buildingBase);
         base.position.y = 2;
         base.castShadow = true;
         group.add(base);
 
-        // Roof trim
         const trim = new THREE.Mesh(new THREE.BoxGeometry(10.2, 0.5, 12.2), this.materials.neonCyan);
         trim.position.y = 4.25;
         group.add(trim);
 
-        // Windows
         const windowGeo = new THREE.BoxGeometry(8, 2, 0.2);
         const win = new THREE.Mesh(windowGeo, this.materials.window);
         win.position.set(0, 2.5, 6.1);
         group.add(win);
 
-        // Neon Sign
         const sign = new THREE.Mesh(new THREE.BoxGeometry(6, 1.5, 0.5), this.materials.neonMagenta);
         sign.position.set(0, 5, 6);
         group.add(sign);
 
         group.position.set(x, 0, z);
-        group.rotation.y = -Math.PI / 4; // Angled towards intersection
+        const rotation = -Math.PI / 4;
+        group.rotation.y = rotation;
         this.scene.add(group);
+
+        // Collision box (rotated to match building)
+        this.addCollisionBox(x, z, 10, 12, rotation);
     }
 
     createCornerStore(x, z) {
@@ -196,20 +221,22 @@ class Neighborhood {
         group.add(awning);
 
         group.position.set(x, 0, z);
-        group.rotation.y = Math.PI / 4;
+        const rotation = Math.PI / 4;
+        group.rotation.y = rotation;
         this.scene.add(group);
+
+        // Collision box
+        this.addCollisionBox(x, z, 8, 8, rotation);
     }
 
     createGasStation(x, z) {
         const group = new THREE.Group();
         
-        // Canopy
         const canopy = new THREE.Mesh(new THREE.BoxGeometry(12, 0.3, 10), this.materials.concrete);
         canopy.position.y = 4;
         canopy.castShadow = true;
         group.add(canopy);
 
-        // Pillars
         const pillarGeo = new THREE.CylinderGeometry(0.3, 0.3, 4);
         [[-5, 2, -4], [5, 2, -4], [-5, 2, 4], [5, 2, 4]].forEach(pos => {
             const p = new THREE.Mesh(pillarGeo, this.materials.streetlightPole);
@@ -217,7 +244,6 @@ class Neighborhood {
             group.add(p);
         });
 
-        // Pumps
         const pumpGeo = new THREE.BoxGeometry(1, 1.5, 1);
         const pump = new THREE.Mesh(pumpGeo, this.materials.neonCyan);
         pump.position.set(0, 0.75, 0);
@@ -225,6 +251,9 @@ class Neighborhood {
 
         group.position.set(x, 0, z);
         this.scene.add(group);
+
+        // Collision box for the whole structure
+        this.addCollisionBox(x, z, 12, 10, 0);
     }
 
     createApartments(x, z) {
@@ -235,7 +264,6 @@ class Neighborhood {
         base.castShadow = true;
         group.add(base);
 
-        // Windows grid
         const winGeo = new THREE.BoxGeometry(1.5, 1.5, 0.2);
         for (let row = 0; row < 3; row++) {
             for (let col = 0; col < 4; col++) {
@@ -247,9 +275,10 @@ class Neighborhood {
 
         group.position.set(x, 0, z);
         this.scene.add(group);
-    }
 
-    // --- PROPS ---
+        // Collision box
+        this.addCollisionBox(x, z, 12, 10, 0);
+    }
 
     createStreetlight(x, z) {
         const group = new THREE.Group();

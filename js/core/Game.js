@@ -26,7 +26,11 @@ class Game {
             
             this.sceneManager = new SceneManager(this.container);
             this.controls = new Controls();
-            this.playerCar = new PlayerCar(this.sceneManager, this.controls);
+            this.playerCar = new PlayerCar(
+                this.sceneManager.scene, 
+                this.controls,
+                this.sceneManager.neighborhood // Pass neighborhood for collision
+            );
             this.hud = new HUD(this);
             
             setTimeout(() => {
@@ -63,7 +67,7 @@ class Game {
         
         requestAnimationFrame(() => this.animate());
         
-        if (this.isPaused) return; // Skip updates when paused
+        if (this.isPaused) return;
         
         const delta = this.sceneManager.getDelta();
         
