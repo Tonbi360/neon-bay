@@ -6,11 +6,11 @@ class PlayerCar {
         
         // --- TUNED PHYSICS VALUES ---
         this.speed = 0;
-        this.maxSpeed = 0.35;       // Reduced from 0.8 (approx 40-50% of previous)
-        this.accelRate = 0.008;     // Progressive acceleration
-        this.brakeRate = 0.02;      // Deceleration only
-        this.friction = 0.98;       // Natural drag (coasting)
-        this.steerSpeed = 0.03;     // Slightly reduced for stability
+        this.maxSpeed = 0.35;
+        this.accelRate = 0.008;
+        this.brakeRate = 0.02;
+        this.friction = 0.98;
+        this.steerSpeed = 0.03;
         
         this.createCar();
     }
@@ -20,7 +20,11 @@ class PlayerCar {
         
         // Main body
         const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4.2);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcc0000, metalness: 0.6, roughness: 0.4 });
+        const bodyMat = new THREE.MeshStandardMaterial({ 
+            color: 0xcc0000, 
+            metalness: 0.6, 
+            roughness: 0.4 
+        });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.position.y = 0.6;
         body.castShadow = true;
@@ -28,7 +32,11 @@ class PlayerCar {
         
         // Cabin
         const cabinGeo = new THREE.BoxGeometry(1.8, 0.7, 2.2);
-        const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.9, roughness: 0.1 });
+        const cabinMat = new THREE.MeshStandardMaterial({ 
+            color: 0x1a1a1a, 
+            metalness: 0.9, 
+            roughness: 0.1 
+        });
         const cabin = new THREE.Mesh(cabinGeo, cabinMat);
         cabin.position.set(0, 1.3, 0.2);
         cabin.castShadow = true;
@@ -62,14 +70,11 @@ class PlayerCar {
         if (input.acc) {
             this.speed += this.accelRate;
         } 
-        // Braking (FIXED: Decelerates to 0, does NOT reverse)
+        // Braking (decelerates to 0 only)
         else if (input.brk) {
             if (this.speed > 0) {
                 this.speed -= this.brakeRate;
                 if (this.speed < 0) this.speed = 0;
-            } else if (this.speed < 0) {
-                this.speed += this.brakeRate;
-                if (this.speed > 0) this.speed = 0;
             }
         } 
         // Natural drag
@@ -78,20 +83,16 @@ class PlayerCar {
             if (Math.abs(this.speed) < 0.001) this.speed = 0;
         }
         
-        // Clamp speed
-        this.speed = Math.max(-this.maxSpeed / 2, Math.min(this.maxSpeed, this.speed));
+        // Clamp speed (NO NEGATIVE - forward only for now)
+        this.speed = Math.max(0, Math.min(this.maxSpeed, this.speed));
         
         // Steering (only steer if moving)
-        if (Math.abs(this.speed) > 0.01) {
-            const direction = this.speed > 0 ? 1 : -1;
-            // Steering is slightly less sensitive at high speeds for stability
-            const currentSteer = this.steerSpeed * (0.7 + 0.3 * (Math.abs(this.speed) / this.maxSpeed));
-            
-            if (input.left) this.mesh.rotation.y += currentSteer * direction;
-            if (input.right) this.mesh.rotation.y -= currentSteer * direction;
+        if (this.speed > 0.01) {
+            if (input.left) this.mesh.rotation.y += this.steerSpeed;
+            if (input.right) this.mesh.rotation.y -= this.steerSpeed;
         }
         
-        // Move car forward/backward based on rotation
+        // Move car forward based on rotation
         this.mesh.translateZ(-this.speed);
         
         // Update Camera
@@ -101,14 +102,11 @@ class PlayerCar {
     updateCamera() {
         if (!this.mesh || !this.scene.camera) return;
         
-        // Calculate desired camera position (behind and above car)
-        const relativeOffset = new THREE.Vector3(0, 3.5, 8); // Tuned for better view
+        const relativeOffset = new THREE.Vector3(0, 3.5, 8);
         const cameraTarget = relativeOffset.applyMatrix4(this.mesh.matrixWorld);
         
-        // Smoothly interpolate camera position
         this.scene.camera.position.lerp(cameraTarget, 0.1);
         
-        // Look slightly ahead of the car
         const lookTarget = new THREE.Vector3(0, 1, -5);
         lookTarget.applyMatrix4(this.mesh.matrixWorld);
         this.scene.camera.lookAt(lookTarget);
