@@ -6,6 +6,7 @@ class Game {
         this.retryBtn = document.getElementById('retry-btn');
         
         this.sceneManager = null;
+        this.controls = null;
         this.playerCar = null;
         this.isRunning = false;
         this.isLoaded = false;
@@ -16,7 +17,6 @@ class Game {
     async init() {
         try {
             console.log('[Game] Initializing...');
-            
             this.loadingScreen.classList.remove('hidden');
             
             if (typeof THREE === 'undefined') {
@@ -24,16 +24,14 @@ class Game {
             }
             
             this.sceneManager = new SceneManager(this.container);
-            this.playerCar = new PlayerCar(this.sceneManager);
+            this.controls = new Controls(); // Initialize controls
+            this.playerCar = new PlayerCar(this.sceneManager, this.controls); // Pass controls
             
             setTimeout(() => {
                 this.loadingScreen.classList.add('hidden');
                 this.isLoaded = true;
                 this.start();
             }, 500);
-            
-            console.log('[Game] Initialized successfully');
-            
         } catch (error) {
             console.error('[Game] Initialization failed:', error);
             this.showError();
