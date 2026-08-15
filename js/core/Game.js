@@ -6,6 +6,7 @@ class Game {
         this.retryBtn = document.getElementById('retry-btn');
         
         this.sceneManager = null;
+        this.playerCar = null;
         this.isRunning = false;
         this.isLoaded = false;
         
@@ -16,18 +17,15 @@ class Game {
         try {
             console.log('[Game] Initializing...');
             
-            // Show loading
             this.loadingScreen.classList.remove('hidden');
             
-            // Wait for Three.js to load
             if (typeof THREE === 'undefined') {
                 throw new Error('Three.js not loaded');
             }
             
-            // Initialize scene manager
             this.sceneManager = new SceneManager(this.container);
+            this.playerCar = new PlayerCar(this.sceneManager);
             
-            // Hide loading
             setTimeout(() => {
                 this.loadingScreen.classList.add('hidden');
                 this.isLoaded = true;
@@ -62,9 +60,9 @@ class Game {
         
         const delta = this.sceneManager.getDelta();
         
-        // Simple test animation - rotate car slowly
-        if (this.sceneManager.testCar) {
-            this.sceneManager.testCar.rotation.y += delta * 0.1;
+        // Update player car
+        if (this.playerCar) {
+            this.playerCar.update(delta);
         }
         
         this.sceneManager.render();
@@ -82,6 +80,10 @@ class Game {
     async restart() {
         console.log('[Game] Restarting...');
         this.hideError();
+        
+        if (this.playerCar) {
+            this.playerCar.dispose();
+        }
         
         if (this.sceneManager) {
             this.sceneManager.dispose();
