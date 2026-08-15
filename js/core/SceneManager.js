@@ -113,27 +113,7 @@ class SceneManager {
             }
         });
         
-        // Placeholder car (simple box)
-        const carGeometry = new THREE.BoxGeometry(2, 1, 4);
-        const carMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0xcc0000,
-            metalness: 0.6,
-            roughness: 0.4
-        });
-        this.testCar = new THREE.Mesh(carGeometry, carMaterial);
-        this.testCar.position.set(0, 0.5, 0);
-        this.testCar.castShadow = true;
-        this.scene.add(this.testCar);
-        
-        // Simple wheels
-        const wheelGeometry = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 8);
-        const wheelMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 });
-        [[-1, 0.4, 1.5], [1, 0.4, 1.5], [-1, 0.4, -1.5], [1, 0.4, -1.5]].forEach(pos => {
-            const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-            wheel.rotation.z = Math.PI / 2;
-            wheel.position.set(...pos);
-            this.testCar.add(wheel);
-        });
+        // NO CAR HERE ANYMORE. PlayerCar.js handles it.
     }
     
     setupResizeHandler() {
