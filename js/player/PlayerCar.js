@@ -4,13 +4,13 @@ class PlayerCar {
         this.controls = controls;
         this.mesh = null;
         
-        // Physics
+        // --- TUNED PHYSICS VALUES ---
         this.speed = 0;
-        this.maxSpeed = 0.8; // Tuned for arcade feel
-        this.accelRate = 0.015;
-        this.brakeRate = 0.03;
-        this.friction = 0.96;
-        this.steerSpeed = 0.04;
+        this.maxSpeed = 0.35;       // Reduced from 0.8 (approx 40-50% of previous)
+        this.accelRate = 0.008;     // Progressive acceleration
+        this.brakeRate = 0.02;      // Deceleration only
+        this.friction = 0.98;       // Natural drag (coasting)
+        this.steerSpeed = 0.03;     // Slightly reduced for stability
         
         this.createCar();
     }
@@ -18,7 +18,7 @@ class PlayerCar {
     createCar() {
         const carGroup = new THREE.Group();
         
-        // Main body (Facing -Z by default for translateZ)
+        // Main body
         const bodyGeo = new THREE.BoxGeometry(2, 0.8, 4.2);
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0xcc0000, metalness: 0.6, roughness: 0.4 });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -30,7 +30,7 @@ class PlayerCar {
         const cabinGeo = new THREE.BoxGeometry(1.8, 0.7, 2.2);
         const cabinMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.9, roughness: 0.1 });
         const cabin = new THREE.Mesh(cabinGeo, cabinMat);
-        cabin.position.set(0, 1.3, 0.2); // Shifted slightly back
+        cabin.position.set(0, 1.3, 0.2);
         cabin.castShadow = true;
         carGroup.add(cabin);
         
@@ -58,24 +58,37 @@ class PlayerCar {
         
         const input = this.controls.input;
         
-        // Acceleration / Braking
+        // Acceleration
         if (input.acc) {
             this.speed += this.accelRate;
-        } else if (input.brk) {
-            this.speed -= this.brakeRate;
-        } else {
-            this.speed *= this.friction; // Natural slowdown
+        } 
+        // Braking (FIXED: Decelerates to 0, does NOT reverse)
+        else if (input.brk) {
+            if (this.speed > 0) {
+                this.speed -= this.brakeRate;
+                if (this.speed < 0) this.speed = 0;
+            } else if (this.speed < 0) {
+                this.speed += this.brakeRate;
+                if (this.speed > 0) this.speed = 0;
+            }
+        } 
+        // Natural drag
+        else {
+            this.speed *= this.friction;
+            if (Math.abs(this.speed) < 0.001) this.speed = 0;
         }
         
         // Clamp speed
         this.speed = Math.max(-this.maxSpeed / 2, Math.min(this.maxSpeed, this.speed));
-        if (Math.abs(this.speed) < 0.001) this.speed = 0;
         
         // Steering (only steer if moving)
         if (Math.abs(this.speed) > 0.01) {
             const direction = this.speed > 0 ? 1 : -1;
-            if (input.left) this.mesh.rotation.y += this.steerSpeed * direction;
-            if (input.right) this.mesh.rotation.y -= this.steerSpeed * direction;
+            // Steering is slightly less sensitive at high speeds for stability
+            const currentSteer = this.steerSpeed * (0.7 + 0.3 * (Math.abs(this.speed) / this.maxSpeed));
+            
+            if (input.left) this.mesh.rotation.y += currentSteer * direction;
+            if (input.right) this.mesh.rotation.y -= currentSteer * direction;
         }
         
         // Move car forward/backward based on rotation
@@ -89,7 +102,7 @@ class PlayerCar {
         if (!this.mesh || !this.scene.camera) return;
         
         // Calculate desired camera position (behind and above car)
-        const relativeOffset = new THREE.Vector3(0, 4, 10);
+        const relativeOffset = new THREE.Vector3(0, 3.5, 8); // Tuned for better view
         const cameraTarget = relativeOffset.applyMatrix4(this.mesh.matrixWorld);
         
         // Smoothly interpolate camera position
@@ -99,6 +112,10 @@ class PlayerCar {
         const lookTarget = new THREE.Vector3(0, 1, -5);
         lookTarget.applyMatrix4(this.mesh.matrixWorld);
         this.scene.camera.lookAt(lookTarget);
+    }
+    
+    getPosition() {
+        return this.mesh ? this.mesh.position : new THREE.Vector3(0, 0, 0);
     }
     
     dispose() {
