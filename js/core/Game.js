@@ -61,6 +61,9 @@ class Game {
         // Update player car
         if (this.playerCar) {
             this.playerCar.update(delta);
+            
+            // Update infinite world to follow car
+            this.sceneManager.updateEnvironment(this.playerCar.getPosition());
         }
         
         this.sceneManager.render();
