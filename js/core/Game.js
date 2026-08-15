@@ -27,10 +27,25 @@ class Game {
             this.sceneManager = new SceneManager(this.container);
             this.controls = new Controls();
             this.playerCar = new PlayerCar(
-                this.sceneManager, // Pass the manager
+                this.sceneManager, 
                 this.controls,
                 this.sceneManager.neighborhood
             );
+            
+            // NB-008: Spawn the target vehicle (Blue Sedan)
+            this.targetVehicle = new Vehicle(
+                this.sceneManager.scene,
+                this.sceneManager.neighborhood,
+                {
+                    x: 15,       // Near the gas station
+                    z: -20, 
+                    rotY: Math.PI / 2, // Parked perpendicular to the road
+                    color: 0x0055ff,   // Distinctive blue
+                    width: 2.2,
+                    depth: 4.5
+                }
+            );
+
             this.hud = new HUD(this);
             
             setTimeout(() => {
@@ -91,6 +106,7 @@ class Game {
     async restart() {
         this.hideError();
         if (this.playerCar) this.playerCar.dispose();
+        if (this.targetVehicle) this.targetVehicle.dispose(); // Clean up target vehicle
         if (this.sceneManager) this.sceneManager.dispose();
         
         this.isRunning = false;
