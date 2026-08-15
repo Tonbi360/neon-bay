@@ -1,5 +1,5 @@
 // Neon Bay - Main Entry Point
-console.log('🚗 Neon Bay v0.1 - Foundation');
+console.log(' Neon Bay v0.1 - Foundation');
 
 // Global game instance
 let game = null;
