@@ -1,52 +1,305 @@
 class Controls {
     constructor() {
-        this.input = { left: false, right: false, acc: false, brk: false };
-        this.setupButtons();
-        this.setupKeyboard();
-    }
-
-    setupButtons() {
-        const bindBtn = (id, key) => {
-            const btn = document.getElementById(id);
-            if (!btn) return;
-            
-            const press = (e) => { 
-                if(e) e.preventDefault(); 
-                this.input[key] = true; 
-                btn.classList.add('active'); 
-            };
-            const release = (e) => { 
-                if(e) e.preventDefault(); 
-                this.input[key] = false; 
-                btn.classList.remove('active'); 
-            };
-            
-            btn.addEventListener('touchstart', press, { passive: false });
-            btn.addEventListener('touchend', release, { passive: false });
-            btn.addEventListener('touchcancel', release, { passive: false });
-            btn.addEventListener('mousedown', press);
-            btn.addEventListener('mouseup', release);
-            btn.addEventListener('mouseleave', release);
+        this.input = {
+            left: false,
+            right: false,
+            acc: false,
+            brk: false
         };
 
-        bindBtn('btn-left', 'left');
-        bindBtn('btn-right', 'right');
-        bindBtn('btn-acc', 'acc');
-        bindBtn('btn-brk', 'brk');
+        this.buttons = {};
+        this.listeners = [];
+
+        this.setupButtons();
+        this.setupKeyboard();
+        this.setupFocusHandling();
     }
 
-    setupKeyboard() {
-        window.addEventListener('keydown', (e) => {
-            if (e.code === 'ArrowLeft' || e.code === 'KeyA') { this.input.left = true; document.getElementById('btn-left')?.classList.add('active'); }
-            if (e.code === 'ArrowRight' || e.code === 'KeyD') { this.input.right = true; document.getElementById('btn-right')?.classList.add('active'); }
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') { this.input.acc = true; document.getElementById('btn-acc')?.classList.add('active'); }
-            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') { this.input.brk = true; document.getElementById('btn-brk')?.classList.add('active'); }
-        });
-        window.addEventListener('keyup', (e) => {
-            if (e.code === 'ArrowLeft' || e.code === 'KeyA') { this.input.left = false; document.getElementById('btn-left')?.classList.remove('active'); }
-            if (e.code === 'ArrowRight' || e.code === 'KeyD') { this.input.right = false; document.getElementById('btn-right')?.classList.remove('active'); }
-            if (e.code === 'ArrowUp' || e.code === 'KeyW') { this.input.acc = false; document.getElementById('btn-acc')?.classList.remove('active'); }
-            if (e.code === 'ArrowDown' || e.code === 'KeyS' || e.code === 'Space') { this.input.brk = false; document.getElementById('btn-brk')?.classList.remove('active'); }
-        });
+    // ------------------------------------------------------------
+    // BUTTON CONTROLS
+    // ------------------------------------------------------------
+
+    setupButtons() {
+        const definitions = [
+            ['btn-left', 'left'],
+            ['btn-right', 'right'],
+            ['btn-acc', 'acc'],
+            ['btn-brk', 'brk']
+        ];
+
+        for (const [id, key] of definitions) {
+            const button = document.getElementById(id);
+
+            if (!button) {
+                continue;
+            }
+
+            this.buttons[key] = button;
+
+            const press = (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                this.setInput(key, true);
+            };
+
+            const release = (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                this.setInput(key, false);
+            };
+
+            // Touch
+            button.addEventListener(
+                'touchstart',
+                press,
+                { passive: false }
+            );
+
+            button.addEventListener(
+                'touchend',
+                release,
+                { passive: false }
+            );
+
+            button.addEventListener(
+                'touchcancel',
+                release,
+                { passive: false }
+            );
+
+            // Mouse
+            button.addEventListener(
+                'mousedown',
+                press
+            );
+
+            button.addEventListener(
+                'mouseup',
+                release
+            );
+
+            button.addEventListener(
+                'mouseleave',
+                release
+            );
+
+            this.listeners.push(
+                {
+                    element: button,
+                    type: 'touchstart',
+                    handler: press,
+                    options: { passive: false }
+                },
+                {
+                    element: button,
+                    type: 'touchend',
+                    handler: release,
+                    options: { passive: false }
+                },
+                {
+                    element: button,
+                    type: 'touchcancel',
+                    handler: release,
+                    options: { passive: false }
+                },
+                {
+                    element: button,
+                    type: 'mousedown',
+                    handler: press
+                },
+                {
+                    element: button,
+                    type: 'mouseup',
+                    handler: release
+                },
+                {
+                    element: button,
+                    type: 'mouseleave',
+                    handler: release
+                }
+            );
+        }
     }
-}
+
+    // ------------------------------------------------------------
+    // KEYBOARD
+    // ------------------------------------------------------------
+
+    setupKeyboard() {
+        this.keyDownHandler = (event) => {
+            const key = this.getInputFromKey(event.code);
+
+            if (!key) {
+                return;
+            }
+
+            // Prevent arrows/space from scrolling the page while
+            // they're being used as game controls.
+            event.preventDefault();
+
+            this.setInput(key, true);
+        };
+
+        this.keyUpHandler = (event) => {
+            const key = this.getInputFromKey(event.code);
+
+            if (!key) {
+                return;
+            }
+
+            event.preventDefault();
+
+            this.setInput(key, false);
+        };
+
+        window.addEventListener(
+            'keydown',
+            this.keyDownHandler
+        );
+
+        window.addEventListener(
+            'keyup',
+            this.keyUpHandler
+        );
+    }
+
+    getInputFromKey(code) {
+        switch (code) {
+            case 'ArrowLeft':
+            case 'KeyA':
+                return 'left';
+
+            case 'ArrowRight':
+            case 'KeyD':
+                return 'right';
+
+            case 'ArrowUp':
+            case 'KeyW':
+                return 'acc';
+
+            case 'ArrowDown':
+            case 'KeyS':
+            case 'Space':
+                return 'brk';
+
+            default:
+                return null;
+        }
+    }
+
+    // ------------------------------------------------------------
+    // INPUT STATE
+    // ------------------------------------------------------------
+
+    setInput(key, value) {
+        if (!(key in this.input)) {
+            return;
+        }
+
+        this.input[key] = value;
+
+        const button = this.buttons[key];
+
+        if (button) {
+            button.classList.toggle(
+                'active',
+                value
+            );
+        }
+    }
+
+    clearInput() {
+        for (const key of Object.keys(this.input)) {
+            this.setInput(key, false);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // FOCUS / VISIBILITY
+    // ------------------------------------------------------------
+
+    setupFocusHandling() {
+        this.blurHandler = () => {
+            this.clearInput();
+        };
+
+        this.visibilityHandler = () => {
+            if (document.hidden) {
+                this.clearInput();
+            }
+        };
+
+        window.addEventListener(
+            'blur',
+            this.blurHandler
+        );
+
+        document.addEventListener(
+            'visibilitychange',
+            this.visibilityHandler
+        );
+    }
+
+    // ------------------------------------------------------------
+    // CLEANUP
+    // ------------------------------------------------------------
+
+    dispose() {
+        console.log('[Controls] Disposing');
+
+        this.clearInput();
+
+        // Remove button listeners.
+        for (const listener of this.listeners) {
+            listener.element.removeEventListener(
+                listener.type,
+                listener.handler,
+                listener.options
+            );
+        }
+
+        this.listeners = [];
+
+        // Remove keyboard listeners.
+        if (this.keyDownHandler) {
+            window.removeEventListener(
+                'keydown',
+                this.keyDownHandler
+            );
+
+            this.keyDownHandler = null;
+        }
+
+        if (this.keyUpHandler) {
+            window.removeEventListener(
+                'keyup',
+                this.keyUpHandler
+            );
+
+            this.keyUpHandler = null;
+        }
+
+        // Remove focus listeners.
+        if (this.blurHandler) {
+            window.removeEventListener(
+                'blur',
+                this.blurHandler
+            );
+
+            this.blurHandler = null;
+        }
+
+        if (this.visibilityHandler) {
+            document.removeEventListener(
+                'visibilitychange',
+                this.visibilityHandler
+            );
+
+            this.visibilityHandler = null;
+        }
+
+        this.buttons = {};
+    }
+                    }
