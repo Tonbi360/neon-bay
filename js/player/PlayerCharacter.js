@@ -32,7 +32,7 @@ class PlayerCharacter {
     update(input, delta) {
         if (!this.mesh.visible) return;
         
-        // Movement
+        // Movement (tank controls for simplicity)
         if (input.acc) {
             this.speed += this.accelRate;
         } else if (input.brk) {
@@ -79,9 +79,21 @@ class PlayerCharacter {
         camera.lookAt(lookTarget);
     }
     
-    setPosition(x, z, rotY) {
-        this.mesh.position.set(x, 0.9, z); // Slightly elevated so feet are on ground
-        this.mesh.rotation.y = rotY;
+    // Spawn player beside the vehicle (driver's side)
+    setPositionFromVehicle(vehiclePosition, vehicleRotation) {
+        // Calculate offset to the left of the vehicle (driver's side)
+        const offset = 2.5; // Distance from vehicle
+        const sideOffset = 1.2; // To the left side
+        
+        const cos = Math.cos(vehicleRotation);
+        const sin = Math.sin(vehicleRotation);
+        
+        // Position to the left and slightly behind
+        const x = vehiclePosition.x + (sin * offset) + (cos * sideOffset);
+        const z = vehiclePosition.z + (cos * offset) - (sin * sideOffset);
+        
+        this.mesh.position.set(x, 0.9, z);
+        this.mesh.rotation.y = vehicleRotation;
     }
     
     getPosition() {
