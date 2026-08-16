@@ -14,39 +14,74 @@ let rejectionHandler = null;
 async function initializeGame() {
     console.log('[Main] DOM ready');
 
-    // Prevent the browser from scrolling the game page while touching
-    // the game surface. We intentionally avoid blocking every touch
-    // event globally so future camera/UI gestures can still work.
-    const gameRoot = document.getElementById('game-container') || document.body;
+    const gameRoot =
+        document.getElementById('game-container') ||
+        document.body;
 
+    // Prevent the browser from scrolling the game page while
+    // touching the game surface.
+    //
+    // We intentionally only block touchmove on the game root
+    // rather than globally blocking every touch event.
     touchHandler = (event) => {
         if (event.cancelable) {
             event.preventDefault();
         }
     };
 
-    gameRoot.addEventListener('touchmove', touchHandler, {
-        passive: false
-    });
+    gameRoot.addEventListener(
+        'touchmove',
+        touchHandler,
+        {
+            passive: false
+        }
+    );
 
     try {
         game = new Game();
 
         await game.init();
 
-        console.log('[Main] Game initialized successfully');
+        console.log(
+            '[Main] Game initialized successfully'
+        );
     } catch (error) {
-        console.error('[Main] Game initialization failed:', error);
+        console.error(
+            '[Main] Game initialization failed:',
+            error
+        );
 
         // Game.js owns the actual error UI.
-        if (game && typeof game.showError === 'function') {
+        if (
+            game &&
+            typeof game.showError === 'function'
+        ) {
             game.showError(error);
+        } else {
+            // If Game itself failed before it could expose
+            // the error UI, fall back to the DOM directly.
+            const loadingScreen =
+                document.getElementById('loading-screen');
+
+            const errorScreen =
+                document.getElementById('error-screen');
+
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+            }
+
+            if (errorScreen) {
+                errorScreen.style.display = 'flex';
+            }
         }
     }
 }
 
 /**
- * Pause/resume the game when the browser/app becomes hidden or visible.
+ * Pause/resume the game when the browser/app becomes
+ * hidden or visible.
+ *
+ * Game.js remains responsible for the actual game state.
  */
 function setupVisibilityHandling() {
     visibilityHandler = () => {
@@ -55,28 +90,50 @@ function setupVisibilityHandling() {
         }
 
         if (document.hidden) {
-            console.log('[Main] Page hidden - pausing');
+            console.log(
+                '[Main] Page hidden - pausing'
+            );
 
-            if (typeof game.stop === 'function') {
+            if (
+                typeof game.stop === 'function'
+            ) {
                 game.stop();
             }
         } else {
-            console.log('[Main] Page visible - resuming');
+            console.log(
+                '[Main] Page visible - resuming'
+            );
 
-            if (typeof game.start === 'function') {
+            /*
+             * Do not blindly resume a game that the player
+             * intentionally paused.
+             *
+             * Game.js can expose isPaused to distinguish
+             * application suspension from an intentional pause.
+             */
+            if (game.isPaused === true) {
+                return;
+            }
+
+            if (
+                typeof game.start === 'function'
+            ) {
                 game.start();
             }
         }
     };
 
-    document.addEventListener('visibilitychange', visibilityHandler);
+    document.addEventListener(
+        'visibilitychange',
+        visibilityHandler
+    );
 }
 
 /**
  * Global error logging.
  *
- * We don't attempt to recover from arbitrary JavaScript errors here.
- * Game.js is responsible for game-state recovery.
+ * We don't attempt to recover from arbitrary JavaScript
+ * errors here. Game.js owns game-state recovery.
  */
 function setupErrorHandling() {
     errorHandler = (event) => {
@@ -93,7 +150,11 @@ function setupErrorHandling() {
         );
     };
 
-    window.addEventListener('error', errorHandler);
+    window.addEventListener(
+        'error',
+        errorHandler
+    );
+
     window.addEventListener(
         'unhandledrejection',
         rejectionHandler
@@ -101,23 +162,38 @@ function setupErrorHandling() {
 }
 
 /**
- * Remove listeners and stop the game.
+ * Remove listeners and shut down the game.
  *
- * Useful when rebuilding/reinitializing the application without
- * accumulating duplicate listeners.
+ * This prevents duplicate listeners if the application
+ * is initialized again.
  */
 function shutdownGame() {
     console.log('[Main] Shutting down');
 
-    if (game && typeof game.stop === 'function') {
-        game.stop();
+    if (game) {
+        if (
+            typeof game.stop === 'function'
+        ) {
+            game.stop();
+        }
+
+        if (
+            typeof game.dispose === 'function'
+        ) {
+            game.dispose();
+        }
     }
 
     const gameRoot =
-        document.getElementById('game-container') || document.body;
+        document.getElementById('game-container') ||
+        document.body;
 
     if (touchHandler) {
-        gameRoot.removeEventListener('touchmove', touchHandler);
+        gameRoot.removeEventListener(
+            'touchmove',
+            touchHandler
+        );
+
         touchHandler = null;
     }
 
@@ -126,11 +202,16 @@ function shutdownGame() {
             'visibilitychange',
             visibilityHandler
         );
+
         visibilityHandler = null;
     }
 
     if (errorHandler) {
-        window.removeEventListener('error', errorHandler);
+        window.removeEventListener(
+            'error',
+            errorHandler
+        );
+
         errorHandler = null;
     }
 
@@ -139,13 +220,16 @@ function shutdownGame() {
             'unhandledrejection',
             rejectionHandler
         );
+
         rejectionHandler = null;
     }
 
     game = null;
 }
 
-// Bootstrap
+/**
+ * Bootstrap Neon Bay.
+ */
 document.addEventListener(
     'DOMContentLoaded',
     () => {
@@ -153,5 +237,7 @@ document.addEventListener(
         setupVisibilityHandling();
         initializeGame();
     },
-    { once: true }
+    {
+        once: true
+    }
 );
