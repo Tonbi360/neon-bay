@@ -1,94 +1,149 @@
 class Game {
     constructor() {
+        // ============================================================
         // DOM
-        this.container = document.getElementById('game-container');
-        this.loadingScreen = document.getElementById('loading-screen');
-        this.errorScreen = document.getElementById('error-screen');
-        this.retryBtn = document.getElementById('retry-btn');
+        // ============================================================
+
+        this.container =
+            document.getElementById('game-container');
+
+        this.loadingScreen =
+            document.getElementById('loading-screen');
+
+        this.errorScreen =
+            document.getElementById('error-screen');
+
+        this.retryBtn =
+            document.getElementById('retry-btn');
 
         // Interaction UI
-        this.btnExit = document.getElementById('btn-exit');
-        this.btnEnter = document.getElementById('btn-enter');
+        this.btnExit =
+            document.getElementById('btn-exit');
 
-        // Core systems
+        this.btnEnter =
+            document.getElementById('btn-enter');
+
+        // ============================================================
+        // CORE SYSTEMS
+        // ============================================================
+
         this.sceneManager = null;
         this.controls = null;
         this.hud = null;
 
-        // Player entities
+        // ============================================================
+        // PLAYER ENTITIES
+        // ============================================================
+
         this.playerCar = null;
         this.playerCharacter = null;
 
-        // Other vehicles currently present in the world
+        // Other vehicles currently present in the world.
         this.parkedVehicles = [];
 
-        // Current nearby vehicle target
+        // Vehicle currently available for interaction.
         this.interactionTarget = null;
 
-        // Player state
+        // ============================================================
+        // PLAYER STATE
+        // ============================================================
+
         this.state = 'IN_VEHICLE';
 
-        // Game lifecycle
+        // ============================================================
+        // GAME LIFECYCLE
+        // ============================================================
+
         this.isRunning = false;
         this.isPaused = false;
         this.isLoaded = false;
 
-        // Interaction tuning
+        this.animationFrame = null;
+
+        // ============================================================
+        // INTERACTION TUNING
+        // ============================================================
+
         this.INTERACTION_RADIUS = 3.5;
         this.EXIT_OFFSET = 2.2;
 
-        // Animation frame tracking
-        this.animationFrame = null;
-
-        // Prevent duplicate restart listeners
+        // Prevent duplicate retry listeners.
         this.restartHandler = null;
 
         this.setupInteraction();
     }
 
-    // ------------------------------------------------------------
-    // INITIALIZATION
-    // ------------------------------------------------------------
+    // ================================================================
+    // INTERACTION SETUP
+    // ================================================================
 
     setupInteraction() {
-        if (this.btnExit) {
-            this.btnExit.addEventListener('click', (event) => {
-                event.preventDefault();
+        // ------------------------------------------------------------
+        // EXIT VEHICLE
+        // ------------------------------------------------------------
 
-                if (this.state === 'IN_VEHICLE') {
-                    this.exitVehicle();
+        if (this.btnExit) {
+            this.btnExit.addEventListener(
+                'click',
+                (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (
+                        this.state === 'IN_VEHICLE'
+                    ) {
+                        this.exitVehicle();
+                    }
                 }
-            });
+            );
 
             this.btnExit.addEventListener(
                 'touchstart',
                 (event) => {
                     event.stopPropagation();
                 },
-                { passive: false }
+                {
+                    passive: false
+                }
             );
         }
 
-        if (this.btnEnter) {
-            this.btnEnter.addEventListener('click', (event) => {
-                event.preventDefault();
+        // ------------------------------------------------------------
+        // ENTER VEHICLE
+        // ------------------------------------------------------------
 
-                if (
-                    this.state === 'ON_FOOT' &&
-                    this.interactionTarget
-                ) {
-                    this.enterVehicle(this.interactionTarget);
+        if (this.btnEnter) {
+            this.btnEnter.addEventListener(
+                'click',
+                (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    if (
+                        this.state === 'ON_FOOT' &&
+                        this.interactionTarget
+                    ) {
+                        this.enterVehicle(
+                            this.interactionTarget
+                        );
+                    }
                 }
-            });
+            );
 
             this.btnEnter.addEventListener(
                 'touchstart',
                 (event) => {
                     event.stopPropagation();
                 },
-                { passive: false }
+                {
+                    passive: false
+                }
             );
         }
+
+        // ------------------------------------------------------------
+        // RETRY
+        // ------------------------------------------------------------
 
         if (this.retryBtn) {
             this.restartHandler = () => {
@@ -102,18 +157,33 @@ class Game {
         }
     }
 
+    // ================================================================
+    // INITIALIZATION
+    // ================================================================
+
     async init() {
         try {
             console.log('[Game] Initializing...');
 
-            this.hideError();
+            this.stop();
 
-            if (this.loadingScreen) {
-                this.loadingScreen.classList.remove('hidden');
-            }
+            this.isPaused = false;
+            this.isLoaded = false;
+            this.state = 'IN_VEHICLE';
+            this.interactionTarget = null;
+
+            this.hideError();
+            this.showLoading();
+            this.hideInteractionButtons();
+
+            // --------------------------------------------------------
+            // BASIC VALIDATION
+            // --------------------------------------------------------
 
             if (typeof THREE === 'undefined') {
-                throw new Error('Three.js not loaded');
+                throw new Error(
+                    'Three.js not loaded'
+                );
             }
 
             if (!this.container) {
@@ -122,75 +192,121 @@ class Game {
                 );
             }
 
-            // Core systems
-            this.sceneManager = new SceneManager(this.container);
-            this.controls = new Controls();
+            // --------------------------------------------------------
+            // CORE SYSTEMS
+            // --------------------------------------------------------
 
-            // On-foot player
-            this.playerCharacter = new PlayerCharacter(
-                this.sceneManager.scene,
-                this.sceneManager.neighborhood
-            );
+            this.sceneManager =
+                new SceneManager(
+                    this.container
+                );
 
-            // Drivable player vehicle
-            this.playerCar = new PlayerCar(
-                this.sceneManager,
-                this.controls,
-                this.sceneManager.neighborhood
-            );
+            this.controls =
+                new Controls();
 
-            // Parked/available vehicle
-            const blueCar = new Vehicle(
-                this.sceneManager.scene,
-                this.sceneManager.neighborhood,
-                {
-                    x: 15,
-                    z: -20,
-                    rotY: Math.PI / 2,
-                    color: 0x0055ff,
-                    width: 2.2,
-                    depth: 4.5
-                }
-            );
+            // --------------------------------------------------------
+            // PLAYER CHARACTER
+            // --------------------------------------------------------
 
-            this.parkedVehicles = [blueCar];
+            this.playerCharacter =
+                new PlayerCharacter(
+                    this.sceneManager.scene,
+                    this.sceneManager.neighborhood
+                );
 
+            // --------------------------------------------------------
+            // PLAYER CAR
+            // --------------------------------------------------------
+
+            this.playerCar =
+                new PlayerCar(
+                    this.sceneManager,
+                    this.controls,
+                    this.sceneManager.neighborhood
+                );
+
+            // --------------------------------------------------------
+            // PARKED VEHICLE
+            // --------------------------------------------------------
+
+            const blueCar =
+                new Vehicle(
+                    this.sceneManager.scene,
+                    this.sceneManager.neighborhood,
+                    {
+                        x: 15,
+                        z: -20,
+                        rotY: Math.PI / 2,
+                        color: 0x0055ff,
+                        width: 2.2,
+                        depth: 4.5
+                    }
+                );
+
+            this.parkedVehicles = [
+                blueCar
+            ];
+
+            // --------------------------------------------------------
             // HUD
+            // --------------------------------------------------------
+
             this.hud = new HUD(this);
 
-            // Initial state
+            // --------------------------------------------------------
+            // INITIAL PLAYER STATE
+            // --------------------------------------------------------
+
             this.state = 'IN_VEHICLE';
             this.interactionTarget = null;
 
             this.playerCharacter.setVisible(false);
-            this.playerCar.mesh.visible = true;
+
+            if (
+                this.playerCar &&
+                this.playerCar.mesh
+            ) {
+                this.playerCar.mesh.visible = true;
+                this.playerCar.speed = 0;
+                this.playerCar.mesh.updateMatrixWorld(
+                    true
+                );
+            }
 
             this.hideInteractionButtons();
 
+            // --------------------------------------------------------
+            // FINISHED
+            // --------------------------------------------------------
+
             this.isLoaded = true;
 
-            if (this.loadingScreen) {
-                this.loadingScreen.classList.add('hidden');
-            }
+            this.hideLoading();
+            this.hideError();
 
             this.start();
 
-            console.log('[Game] Initialization complete');
+            console.log(
+                '[Game] Initialization complete'
+            );
         } catch (error) {
-            console.error('[Game] Initialization failed:', error);
+            console.error(
+                '[Game] Initialization failed:',
+                error
+            );
 
             this.isLoaded = false;
             this.stop();
+
             this.showError(error);
 
-            // Let the caller know initialization failed.
             throw error;
         }
     }
 
-    // ------------------------------------------------------------
+    // ================================================================
     // GAME LOOP
-    // ------------------------------------------------------------
+    // ================================================================
 
     start() {
         if (this.isRunning) {
@@ -202,35 +318,65 @@ class Game {
         }
 
         this.isRunning = true;
+
+        if (
+            this.sceneManager &&
+            typeof this.sceneManager.resetClock ===
+                'function'
+        ) {
+            this.sceneManager.resetClock();
+        }
+
         this.animate();
     }
 
     stop() {
         this.isRunning = false;
 
-        if (this.animationFrame !== null) {
-            cancelAnimationFrame(this.animationFrame);
+        if (
+            this.animationFrame !== null
+        ) {
+            cancelAnimationFrame(
+                this.animationFrame
+            );
+
             this.animationFrame = null;
         }
     }
 
     pause() {
+        if (!this.isLoaded) {
+            return;
+        }
+
         this.isPaused = true;
     }
 
     resume() {
+        if (!this.isLoaded) {
+            return;
+        }
+
         this.isPaused = false;
+
+        if (!this.isRunning) {
+            this.start();
+        }
     }
 
     animate() {
         if (!this.isRunning) {
+            this.animationFrame = null;
             return;
         }
 
-        this.animationFrame = requestAnimationFrame(() => {
-            this.animate();
-        });
+        this.animationFrame =
+            requestAnimationFrame(() => {
+                this.animate();
+            });
 
+        // Pause freezes gameplay while keeping the render loop
+        // alive so the pause menu remains responsive.
         if (this.isPaused) {
             return;
         }
@@ -244,21 +390,43 @@ class Game {
             return;
         }
 
-        const delta = this.sceneManager.getDelta();
-        const input = this.controls.input;
+        const delta =
+            this.sceneManager.getDelta();
 
-        if (this.state === 'IN_VEHICLE') {
+        const input =
+            this.controls.input;
+
+        // ------------------------------------------------------------
+        // IN VEHICLE
+        // ------------------------------------------------------------
+
+        if (
+            this.state === 'IN_VEHICLE'
+        ) {
             this.playerCar.update(delta);
 
             if (this.hud) {
-                this.hud.updateSpeed(this.playerCar.speed);
+                this.hud.updateSpeed(
+                    this.playerCar.speed
+                );
             }
 
+            // PlayerCar currently owns its own camera update,
+            // but calling it here keeps camera state synchronized.
             this.playerCar.updateCamera();
         }
 
-        if (this.state === 'ON_FOOT') {
-            this.playerCharacter.update(input, delta);
+        // ------------------------------------------------------------
+        // ON FOOT
+        // ------------------------------------------------------------
+
+        if (
+            this.state === 'ON_FOOT'
+        ) {
+            this.playerCharacter.update(
+                input,
+                delta
+            );
 
             if (this.hud) {
                 this.hud.updateSpeed(0);
@@ -269,56 +437,88 @@ class Game {
             );
         }
 
+        // ------------------------------------------------------------
+        // INTERACTIONS
+        // ------------------------------------------------------------
+
         this.updateInteraction();
+
+        // ------------------------------------------------------------
+        // RENDER
+        // ------------------------------------------------------------
+
         this.sceneManager.render();
     }
 
-    // ------------------------------------------------------------
-    // INTERACTION
-    // ------------------------------------------------------------
+    // ================================================================
+    // INTERACTION SYSTEM
+    // ================================================================
 
     updateInteraction() {
-        if (!this.btnExit || !this.btnEnter) {
+        if (
+            !this.btnExit ||
+            !this.btnEnter
+        ) {
             return;
         }
 
-        // --------------------------------------------------------
+        // ------------------------------------------------------------
         // IN VEHICLE
-        // --------------------------------------------------------
+        // ------------------------------------------------------------
 
-        if (this.state === 'IN_VEHICLE') {
+        if (
+            this.state === 'IN_VEHICLE'
+        ) {
             this.interactionTarget = null;
-            this.btnEnter.classList.add('hidden');
 
-            // Exit is a vehicle action.
-            // Keep it available while stopped.
+            this.btnEnter.classList.add(
+                'hidden'
+            );
+
+            // Only allow exiting while essentially stopped.
             if (
                 this.playerCar &&
-                Math.abs(this.playerCar.speed) < 0.05
+                Math.abs(
+                    this.playerCar.speed
+                ) < 0.05
             ) {
-                this.btnExit.classList.remove('hidden');
+                this.btnExit.classList.remove(
+                    'hidden'
+                );
             } else {
-                this.btnExit.classList.add('hidden');
+                this.btnExit.classList.add(
+                    'hidden'
+                );
             }
 
             return;
         }
 
-        // --------------------------------------------------------
+        // ------------------------------------------------------------
         // ON FOOT
-        // --------------------------------------------------------
+        // ------------------------------------------------------------
 
-        if (this.state === 'ON_FOOT') {
-            this.btnExit.classList.add('hidden');
+        if (
+            this.state === 'ON_FOOT'
+        ) {
+            this.btnExit.classList.add(
+                'hidden'
+            );
 
-            const target = this.findNearestVehicle();
+            const target =
+                this.findNearestVehicle();
 
-            this.interactionTarget = target;
+            this.interactionTarget =
+                target;
 
             if (target) {
-                this.btnEnter.classList.remove('hidden');
+                this.btnEnter.classList.remove(
+                    'hidden'
+                );
             } else {
-                this.btnEnter.classList.add('hidden');
+                this.btnEnter.classList.add(
+                    'hidden'
+                );
             }
         }
     }
@@ -335,9 +535,14 @@ class Game {
             this.playerCharacter.getPosition();
 
         let nearestVehicle = null;
-        let nearestDistance = this.INTERACTION_RADIUS;
 
-        for (const vehicle of this.parkedVehicles) {
+        let nearestDistance =
+            this.INTERACTION_RADIUS;
+
+        for (
+            const vehicle
+            of this.parkedVehicles
+        ) {
             if (
                 !vehicle ||
                 !vehicle.mesh ||
@@ -351,7 +556,10 @@ class Game {
                     vehicle.mesh.position
                 );
 
-            if (distance < nearestDistance) {
+            if (
+                distance <
+                nearestDistance
+            ) {
                 nearestDistance = distance;
                 nearestVehicle = vehicle;
             }
@@ -362,29 +570,46 @@ class Game {
 
     hideInteractionButtons() {
         if (this.btnExit) {
-            this.btnExit.classList.add('hidden');
+            this.btnExit.classList.add(
+                'hidden'
+            );
         }
 
         if (this.btnEnter) {
-            this.btnEnter.classList.add('hidden');
+            this.btnEnter.classList.add(
+                'hidden'
+            );
         }
     }
 
-    // ------------------------------------------------------------
-    // VEHICLE STATE
-    // ------------------------------------------------------------
+    // ================================================================
+    // EXIT VEHICLE
+    // ================================================================
 
     exitVehicle() {
-        if (this.state !== 'IN_VEHICLE') {
+        if (
+            this.state !== 'IN_VEHICLE'
+        ) {
             return;
         }
 
-        if (!this.playerCar || !this.playerCar.mesh) {
+        if (
+            !this.playerCar ||
+            !this.playerCar.mesh ||
+            !this.playerCharacter
+        ) {
             return;
         }
 
-        // Only allow exiting while stopped.
-        if (Math.abs(this.playerCar.speed) >= 0.05) {
+        // ------------------------------------------------------------
+        // MUST BE STOPPED
+        // ------------------------------------------------------------
+
+        if (
+            Math.abs(
+                this.playerCar.speed
+            ) >= 0.05
+        ) {
             return;
         }
 
@@ -394,64 +619,108 @@ class Game {
         const vehicleRotation =
             this.playerCar.mesh.rotation.y;
 
-        // Put the character beside the vehicle rather than
-        // inside/on top of it.
+        // ------------------------------------------------------------
+        // PLACE CHARACTER BESIDE VEHICLE
+        // ------------------------------------------------------------
+
         if (
             typeof this.playerCharacter
-                .setPositionFromVehicle === 'function'
+                .setPositionFromVehicle ===
+                'function'
         ) {
-            this.playerCharacter.setPositionFromVehicle(
-                vehiclePosition,
-                vehicleRotation
-            );
+            this.playerCharacter
+                .setPositionFromVehicle(
+                    vehiclePosition,
+                    vehicleRotation
+                );
         } else {
-            // Safety fallback while rebuilding dependencies.
+            // Fallback.
             const offsetX =
-                Math.sin(vehicleRotation) *
-                this.EXIT_OFFSET;
+                Math.sin(
+                    vehicleRotation
+                ) * this.EXIT_OFFSET;
 
             const offsetZ =
-                Math.cos(vehicleRotation) *
-                this.EXIT_OFFSET;
+                Math.cos(
+                    vehicleRotation
+                ) * this.EXIT_OFFSET;
 
             this.playerCharacter.mesh.position.set(
-                vehiclePosition.x + offsetX,
-                0,
-                vehiclePosition.z + offsetZ
+                vehiclePosition.x +
+                    offsetX,
+                0.9,
+                vehiclePosition.z +
+                    offsetZ
             );
 
             this.playerCharacter.mesh.rotation.y =
                 vehicleRotation;
         }
 
-        // Stop and hide the controllable vehicle.
+        // ------------------------------------------------------------
+        // SWITCH CONTROL
+        // ------------------------------------------------------------
+
         this.playerCar.speed = 0;
         this.playerCar.mesh.visible = false;
 
-        // Character becomes active.
-        this.playerCharacter.setVisible(true);
+        this.playerCharacter.setVisible(
+            true
+        );
 
         this.state = 'ON_FOOT';
         this.interactionTarget = null;
 
         this.hideInteractionButtons();
 
-        console.log('[Game] Exited vehicle');
+        // Force matrices/camera to update immediately.
+        this.playerCharacter.mesh.updateMatrixWorld(
+            true
+        );
+
+        if (
+            this.sceneManager &&
+            this.sceneManager.camera
+        ) {
+            this.playerCharacter.updateCamera(
+                this.sceneManager.camera
+            );
+        }
+
+        console.log(
+            '[Game] Exited vehicle'
+        );
     }
 
+    // ================================================================
+    // ENTER VEHICLE
+    // ================================================================
+
     enterVehicle(vehicle = null) {
-        if (this.state !== 'ON_FOOT') {
+        if (
+            this.state !== 'ON_FOOT'
+        ) {
             return;
         }
 
         const target =
-            vehicle || this.interactionTarget;
+            vehicle ||
+            this.interactionTarget;
 
-        if (!target || !target.mesh) {
+        if (
+            !target ||
+            !target.mesh ||
+            !this.playerCar ||
+            !this.playerCar.mesh ||
+            !this.playerCharacter
+        ) {
             return;
         }
 
-        // Verify the player is still close enough.
+        // ------------------------------------------------------------
+        // VERIFY DISTANCE
+        // ------------------------------------------------------------
+
         const playerPosition =
             this.playerCharacter.getPosition();
 
@@ -460,11 +729,17 @@ class Game {
                 target.mesh.position
             );
 
-        if (distance > this.INTERACTION_RADIUS) {
+        if (
+            distance >
+            this.INTERACTION_RADIUS
+        ) {
             return;
         }
 
-        // Move controllable vehicle to the target vehicle.
+        // ------------------------------------------------------------
+        // MOVE PLAYER CAR TO TARGET
+        // ------------------------------------------------------------
+
         this.playerCar.mesh.position.copy(
             target.mesh.position
         );
@@ -473,87 +748,189 @@ class Game {
             target.mesh.rotation.y;
 
         this.playerCar.speed = 0;
-        this.playerCar.mesh.visible = true;
 
-        // Hide character.
-        this.playerCharacter.setVisible(false);
+        this.playerCar.mesh.visible =
+            true;
 
-        // Remove the parked vehicle from the active list.
+        this.playerCar.mesh.updateMatrixWorld(
+            true
+        );
+
+        // ------------------------------------------------------------
+        // HIDE CHARACTER
+        // ------------------------------------------------------------
+
+        this.playerCharacter.setVisible(
+            false
+        );
+
+        // ------------------------------------------------------------
+        // REMOVE TARGET FROM WORLD VEHICLES
+        // ------------------------------------------------------------
+
         this.parkedVehicles =
             this.parkedVehicles.filter(
-                (vehicle) => vehicle !== target
+                (vehicle) =>
+                    vehicle !== target
             );
 
-        // Dispose target vehicle.
-        if (typeof target.dispose === 'function') {
+        if (
+            typeof target.dispose ===
+            'function'
+        ) {
             target.dispose();
         }
+
+        // ------------------------------------------------------------
+        // SWITCH STATE
+        // ------------------------------------------------------------
 
         this.interactionTarget = null;
         this.state = 'IN_VEHICLE';
 
         this.hideInteractionButtons();
 
-        console.log('[Game] Entered vehicle');
+        // Camera immediately transitions to the car.
+        this.playerCar.updateCamera();
+
+        console.log(
+            '[Game] Entered vehicle'
+        );
     }
 
-    // ------------------------------------------------------------
-    // ERROR HANDLING
-    // ------------------------------------------------------------
+    // ================================================================
+    // LOADING / ERROR UI
+    // ================================================================
+
+    showLoading() {
+        if (!this.loadingScreen) {
+            return;
+        }
+
+        this.loadingScreen.style.display =
+            'flex';
+
+        this.loadingScreen.classList.remove(
+            'hidden'
+        );
+    }
+
+    hideLoading() {
+        if (!this.loadingScreen) {
+            return;
+        }
+
+        this.loadingScreen.classList.add(
+            'hidden'
+        );
+    }
 
     showError(error = null) {
         if (error) {
-            console.error('[Game] Error:', error);
+            console.error(
+                '[Game] Error:',
+                error
+            );
         }
 
+        this.stop();
+
         if (this.loadingScreen) {
-            this.loadingScreen.classList.add('hidden');
-            this.loadingScreen.style.display = 'none';
+            this.loadingScreen.classList.add(
+                'hidden'
+            );
+
+            this.loadingScreen.style.display =
+                'none';
         }
 
         if (this.errorScreen) {
-            this.errorScreen.classList.add('show');
+            // Use explicit display instead of relying on
+            // a CSS class that may not exist.
+            this.errorScreen.style.display =
+                'flex';
+
+            this.errorScreen.classList.add(
+                'show'
+            );
         }
     }
 
     hideError() {
-        if (this.errorScreen) {
-            this.errorScreen.classList.remove('show');
+        if (!this.errorScreen) {
+            return;
         }
+
+        this.errorScreen.classList.remove(
+            'show'
+        );
+
+        this.errorScreen.style.display =
+            'none';
     }
 
-    // ------------------------------------------------------------
+    // ================================================================
     // RESTART
-    // ------------------------------------------------------------
+    // ================================================================
 
     async restart() {
-        console.log('[Game] Restarting...');
+        console.log(
+            '[Game] Restarting...'
+        );
 
         this.stop();
 
         this.isLoaded = false;
         this.isPaused = false;
+
         this.state = 'IN_VEHICLE';
         this.interactionTarget = null;
 
         this.hideInteractionButtons();
+        this.hideError();
 
-        // Dispose player systems.
+        // ------------------------------------------------------------
+        // PLAYER CAR
+        // ------------------------------------------------------------
+
         if (this.playerCar) {
-            this.playerCar.dispose();
+            if (
+                typeof this.playerCar.dispose ===
+                'function'
+            ) {
+                this.playerCar.dispose();
+            }
+
             this.playerCar = null;
         }
 
+        // ------------------------------------------------------------
+        // PLAYER CHARACTER
+        // ------------------------------------------------------------
+
         if (this.playerCharacter) {
-            this.playerCharacter.dispose();
+            if (
+                typeof this.playerCharacter.dispose ===
+                'function'
+            ) {
+                this.playerCharacter.dispose();
+            }
+
             this.playerCharacter = null;
         }
 
-        // Dispose parked vehicles.
-        for (const vehicle of this.parkedVehicles) {
+        // ------------------------------------------------------------
+        // PARKED VEHICLES
+        // ------------------------------------------------------------
+
+        for (
+            const vehicle
+            of this.parkedVehicles
+        ) {
             if (
                 vehicle &&
-                typeof vehicle.dispose === 'function'
+                typeof vehicle.dispose ===
+                'function'
             ) {
                 vehicle.dispose();
             }
@@ -561,25 +938,65 @@ class Game {
 
         this.parkedVehicles = [];
 
-        // Dispose scene.
-        if (this.sceneManager) {
-            this.sceneManager.dispose();
-            this.sceneManager = null;
+        // ------------------------------------------------------------
+        // HUD
+        // ------------------------------------------------------------
+
+        /*
+         * HUD currently doesn't expose a dispose() method.
+         *
+         * If one is added later, clean it up here so restart
+         * doesn't accumulate UI listeners.
+         */
+        if (
+            this.hud &&
+            typeof this.hud.dispose ===
+                'function'
+        ) {
+            this.hud.dispose();
         }
 
-        // Controls may provide cleanup in the future.
+        this.hud = null;
+
+        // ------------------------------------------------------------
+        // CONTROLS
+        // ------------------------------------------------------------
+
         if (
             this.controls &&
-            typeof this.controls.dispose === 'function'
+            typeof this.controls.dispose ===
+                'function'
         ) {
             this.controls.dispose();
         }
 
         this.controls = null;
-        this.hud = null;
+
+        // ------------------------------------------------------------
+        // SCENE
+        // ------------------------------------------------------------
+
+        if (this.sceneManager) {
+            if (
+                typeof this.sceneManager.dispose ===
+                'function'
+            ) {
+                this.sceneManager.dispose();
+            }
+
+            this.sceneManager = null;
+        }
+
+        // ------------------------------------------------------------
+        // REINITIALIZE
+        // ------------------------------------------------------------
 
         try {
             await this.init();
+
+            console.log(
+                '[Game] Restart complete'
+            );
         } catch (error) {
             console.error(
                 '[Game] Restart failed:',
