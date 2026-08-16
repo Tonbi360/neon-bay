@@ -17,9 +17,15 @@ class Vehicle {
         // Collision registration.
         this.collisionBox = null;
 
+        // Prevent dispose() from running more than once.
+        this.isDisposed = false;
+
         this.build();
 
-        // World position.
+        // --------------------------------------------------------
+        // WORLD TRANSFORM
+        // --------------------------------------------------------
+
         this.mesh.position.set(
             this.config.x,
             0,
@@ -156,6 +162,10 @@ class Vehicle {
     // ============================================================
 
     registerCollision() {
+        if (this.collisionBox) {
+            return;
+        }
+
         if (
             !this.neighborhood ||
             typeof this.neighborhood.addCollisionBox !==
@@ -166,29 +176,49 @@ class Vehicle {
 
         this.collisionBox =
             this.neighborhood.addCollisionBox(
-                this.config.x,
-                this.config.z,
+                this.mesh.position.x,
+                this.mesh.position.z,
                 this.config.width,
                 this.config.depth,
-                this.config.rotY
+                this.mesh.rotation.y
             );
     }
 
     removeCollision() {
-        if (
-            !this.collisionBox ||
-            !this.neighborhood ||
-            typeof this.neighborhood.removeCollisionBox !==
-                'function'
-        ) {
+        if (!this.collisionBox) {
             return;
         }
 
-        this.neighborhood.removeCollisionBox(
-            this.collisionBox
-        );
+        if (
+            this.neighborhood &&
+            typeof this.neighborhood.removeCollisionBox ===
+                'function'
+        ) {
+            this.neighborhood.removeCollisionBox(
+                this.collisionBox
+            );
+        }
 
         this.collisionBox = null;
+    }
+
+    // ------------------------------------------------------------
+    // UPDATE COLLISION TRANSFORM
+    // ------------------------------------------------------------
+
+    updateCollision() {
+        if (!this.collisionBox) {
+            return;
+        }
+
+        this.collisionBox.x =
+            this.mesh.position.x;
+
+        this.collisionBox.z =
+            this.mesh.position.z;
+
+        this.collisionBox.rotation =
+            this.mesh.rotation.y;
     }
 
     // ============================================================
@@ -196,12 +226,43 @@ class Vehicle {
     // ============================================================
 
     setVisible(visible) {
+        if (this.isDisposed) {
+            return;
+        }
+
         this.mesh.visible = visible;
+
+        /*
+         * An invisible vehicle should not remain a physical
+         * obstacle in the world.
+         */
+        if (visible) {
+            this.registerCollision();
+            this.updateCollision();
+        } else {
+            this.removeCollision();
+        }
     }
 
     // ============================================================
     // POSITION
     // ============================================================
+
+    setPosition(x, z, rotation = this.mesh.rotation.y) {
+        if (this.isDisposed) {
+            return;
+        }
+
+        this.mesh.position.set(
+            x,
+            0,
+            z
+        );
+
+        this.mesh.rotation.y = rotation;
+
+        this.updateCollision();
+    }
 
     getPosition() {
         return this.mesh.position;
@@ -212,35 +273,81 @@ class Vehicle {
     // ============================================================
 
     dispose() {
-        // Remove world collision first.
+        if (this.isDisposed) {
+            return;
+        }
+
+        this.isDisposed = true;
+
+        // --------------------------------------------------------
+        // COLLISION
+        // --------------------------------------------------------
+
         this.removeCollision();
 
-        // Remove from scene.
-        this.scene.remove(this.mesh);
+        // --------------------------------------------------------
+        // SCENE
+        // --------------------------------------------------------
 
-        // Dispose meshes.
+        if (
+            this.scene &&
+            this.mesh.parent === this.scene
+        ) {
+            this.scene.remove(this.mesh);
+        }
+
+        // --------------------------------------------------------
+        // RESOURCE DISPOSAL
+        // --------------------------------------------------------
+
+        /*
+         * Some resources are shared between multiple meshes
+         * (especially the wheel geometry/material).
+         *
+         * Track them so each resource is disposed exactly once.
+         */
+
+        const geometries = new Set();
+        const materials = new Set();
+
         this.mesh.traverse((object) => {
             if (!object.isMesh) {
                 return;
             }
 
             if (object.geometry) {
-                object.geometry.dispose();
+                geometries.add(object.geometry);
             }
 
             if (object.material) {
                 if (Array.isArray(object.material)) {
-                    object.material.forEach(
-                        (material) => {
-                            material.dispose();
+                    for (const material of object.material) {
+                        if (material) {
+                            materials.add(material);
                         }
-                    );
+                    }
                 } else {
-                    object.material.dispose();
+                    materials.add(object.material);
                 }
             }
         });
 
+        for (const geometry of geometries) {
+            geometry.dispose();
+        }
+
+        for (const material of materials) {
+            material.dispose();
+        }
+
+        // --------------------------------------------------------
+        // CLEAR
+        // --------------------------------------------------------
+
         this.mesh.clear();
+
+        this.scene = null;
+        this.neighborhood = null;
+        this.collisionBox = null;
     }
-}
+            }
