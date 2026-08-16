@@ -6,14 +6,14 @@ class Game {
         this.retryBtn = document.getElementById('retry-btn');
         
         // UI Elements
-        this.btnInteract = document.getElementById('btn-interact');
         this.btnExit = document.getElementById('btn-exit');
+        this.btnEnter = document.getElementById('btn-enter');
         
         this.sceneManager = null;
         this.controls = null;
         this.playerCar = null;
         this.playerCharacter = null;
-        this.parkedVehicles = []; // Array of static vehicles in the world
+        this.parkedVehicles = [];
         this.hud = null;
         
         this.state = 'IN_VEHICLE'; // 'IN_VEHICLE' or 'ON_FOOT'
@@ -28,15 +28,6 @@ class Game {
     }
 
     setupInteraction() {
-        // ENTER VEHICLE
-        if (this.btnInteract) {
-            this.btnInteract.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (this.state === 'ON_FOOT') this.enterVehicle();
-            });
-            this.btnInteract.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: false });
-        }
-
         // EXIT VEHICLE
         if (this.btnExit) {
             this.btnExit.addEventListener('click', (e) => {
@@ -44,6 +35,15 @@ class Game {
                 if (this.state === 'IN_VEHICLE') this.exitVehicle();
             });
             this.btnExit.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: false });
+        }
+
+        // ENTER VEHICLE
+        if (this.btnEnter) {
+            this.btnEnter.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (this.state === 'ON_FOOT') this.enterVehicle();
+            });
+            this.btnEnter.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: false });
         }
     }
     
@@ -71,15 +71,22 @@ class Game {
             const blueCar = new Vehicle(
                 this.sceneManager.scene,
                 this.sceneManager.neighborhood,
-                { x: 15, z: -20, rotY: Math.PI / 2, color: 0x0055ff, width: 2.2, depth: 4.5 }
+                { 
+                    x: 15, 
+                    z: -20, 
+                    rotY: Math.PI / 2, 
+                    color: 0x0055ff, 
+                    width: 2.2, 
+                    depth: 4.5 
+                }
             );
             this.parkedVehicles.push(blueCar);
 
             this.hud = new HUD(this);
             
-            // Hide prompts initially
-            if (this.btnInteract) this.btnInteract.classList.add('hidden');
+            // Hide interaction buttons initially
             if (this.btnExit) this.btnExit.classList.add('hidden');
+            if (this.btnEnter) this.btnEnter.classList.add('hidden');
             
             setTimeout(() => {
                 this.loadingScreen.classList.add('hidden');
@@ -115,11 +122,11 @@ class Game {
         if (this.state === 'IN_VEHICLE') {
             this.playerCar.update(delta);
             this.hud.updateSpeed(this.playerCar.speed);
-            if (this.playerCar.updateCamera) this.playerCar.updateCamera();
+            this.playerCar.updateCamera();
         } else if (this.state === 'ON_FOOT') {
             this.playerCharacter.update(input, delta);
             this.hud.updateSpeed(0);
-            if (this.playerCharacter.updateCamera) this.playerCharacter.updateCamera(this.sceneManager.camera);
+            this.playerCharacter.updateCamera(this.sceneManager.camera);
         }
         
         this.updateInteraction();
@@ -127,13 +134,16 @@ class Game {
     }
 
     updateInteraction() {
+        if (!this.btnExit || !this.btnEnter) return;
+
         if (this.state === 'IN_VEHICLE') {
-            // Show EXIT button if stopped
+            // Show EXIT button ONLY when stopped (speed < 0.05)
             if (this.playerCar.speed < 0.05) {
-                if (this.btnExit) this.btnExit.classList.remove('hidden');
-                if (this.btnInteract) this.btnInteract.classList.add('hidden');
+                this.btnExit.classList.remove('hidden');
+                this.btnEnter.classList.add('hidden');
             } else {
-                if (this.btnExit) this.btnExit.classList.add('hidden');
+                // Hide EXIT button when moving
+                this.btnExit.classList.add('hidden');
             }
         } else if (this.state === 'ON_FOOT') {
             // Check distance to all parked vehicles
@@ -148,11 +158,11 @@ class Game {
             }
             
             if (closestDist < this.INTERACTION_RADIUS) {
-                if (this.btnInteract) this.btnInteract.classList.remove('hidden');
+                this.btnEnter.classList.remove('hidden');
             } else {
-                if (this.btnInteract) this.btnInteract.classList.add('hidden');
+                this.btnEnter.classList.add('hidden');
             }
-            if (this.btnExit) this.btnExit.classList.add('hidden');
+            this.btnExit.classList.add('hidden');
         }
     }
 
@@ -242,8 +252,8 @@ class Game {
         this.isLoaded = false;
         this.state = 'IN_VEHICLE';
         
-        if (this.btnInteract) this.btnInteract.classList.add('hidden');
         if (this.btnExit) this.btnExit.classList.add('hidden');
+        if (this.btnEnter) this.btnEnter.classList.add('hidden');
         
         await this.init();
     }
