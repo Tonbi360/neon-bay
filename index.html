@@ -2,101 +2,349 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#0a0f14">
-    <meta name="description" content="Neon Bay: No Rules - Open World Crime Sandbox">
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192.png">
+
+    <meta
+        name="viewport"
+        content="width=device-width,
+                 initial-scale=1.0,
+                 maximum-scale=1.0,
+                 user-scalable=no,
+                 viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#0a0f14"
+    >
+
+    <meta
+        name="description"
+        content="Neon Bay: No Rules - Open World Crime Sandbox"
+    >
+
+    <link
+        rel="manifest"
+        href="manifest.webmanifest"
+    >
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="assets/icons/icon-192.png"
+    >
+
+    <link
+        rel="apple-touch-icon"
+        href="assets/icons/icon-192.png"
+    >
+
     <title>Neon Bay</title>
-    <link rel="stylesheet" href="css/main.css">
+
+    <link
+        rel="stylesheet"
+        href="css/main.css"
+    >
 </head>
+
 <body>
+
+    <!-- ========================================================
+         LOADING SCREEN
+         ======================================================== -->
+
     <div id="loading-screen">
         <div class="loading-content">
-            <h1 class="game-title">NEON BAY</h1>
-            <p class="loading-text">Loading...</p>
+            <h1 class="game-title">
+                NEON BAY
+            </h1>
+
+            <p class="loading-text">
+                Loading...
+            </p>
         </div>
     </div>
 
-    <div id="error-screen" style="display: none;">
+
+    <!-- ========================================================
+         ERROR SCREEN
+         ======================================================== -->
+
+    <div id="error-screen">
         <div class="error-content">
-            <h1 class="game-title">NEON BAY</h1>
-            <p>Something went wrong.</p>
-            <button id="retry-btn">RETRY</button>
+            <h1 class="game-title">
+                NEON BAY
+            </h1>
+
+            <p>
+                Something went wrong.
+            </p>
+
+            <button id="retry-btn">
+                RETRY
+            </button>
         </div>
     </div>
+
+
+    <!-- ========================================================
+         THREE.JS GAME WORLD
+         ======================================================== -->
 
     <div id="game-container"></div>
 
-    <!-- UI LAYER -->
+
+    <!-- ========================================================
+         UI LAYER
+         ======================================================== -->
+
     <div id="ui-layer">
-      <!-- Top HUD -->
-      <div id="hud-top">
-        <div id="hud-money" class="hud-item">
-          <span class="hud-icon">💰</span> <span id="money-val">$0</span>
-        </div>
-        <div id="hud-wanted" class="hud-item">
-          <span class="hud-icon">⭐</span><span class="empty">☆☆☆</span>
-        </div>
-      </div>
 
-      <!-- Speedometer -->
-      <div id="hud-speed">
-        <span id="speed-val">0</span>
-        <span class="speed-unit">KM/H</span>
-      </div>
+        <!-- ----------------------------------------------------
+             TOP HUD
+             ---------------------------------------------------- -->
 
-      <!-- Pause Button -->
-      <button id="btn-pause" class="icon-btn"></button>
+        <div id="hud-top">
 
-      <!-- Interaction Buttons -->
-      <button id="btn-exit" class="interact-btn hidden">EXIT VEHICLE</button>
-      <button id="btn-enter" class="interact-btn hidden">ENTER VEHICLE</button>
+            <div
+                id="hud-money"
+                class="hud-item"
+            >
+                <span class="hud-icon">
+                    💰
+                </span>
 
-      <!-- Controls -->
-      <div id="controls-layer">
-        <div id="steering-controls">
-          <button id="btn-left" class="control-btn dir-btn">◀</button>
-          <button id="btn-right" class="control-btn dir-btn">▶</button>
+                <span id="money-val">
+                    $0
+                </span>
+            </div>
+
+
+            <div
+                id="hud-wanted"
+                class="hud-item"
+            >
+                <span class="hud-icon">
+                    ⭐
+                </span>
+
+                <span class="empty">
+                    ☆☆☆
+                </span>
+            </div>
+
         </div>
-        <div id="pedal-controls">
-          <button id="btn-brk" class="control-btn pedal-btn brake">BRK</button>
-          <button id="btn-acc" class="control-btn pedal-btn accel">ACC</button>
-        </div>
-      </div>
 
-      <!-- Pause Menu -->
-      <div id="pause-menu" class="hidden">
-        <div class="pause-content">
-          <h2>PAUSED</h2>
-          <button id="btn-resume" class="menu-btn primary">RESUME</button>
-          <button id="btn-restart" class="menu-btn">RESTART</button>
-          <button class="menu-btn disabled">SETTINGS</button>
-          <button class="menu-btn disabled">QUIT</button>
+
+        <!-- ----------------------------------------------------
+             SPEEDOMETER
+             ---------------------------------------------------- -->
+
+        <div id="hud-speed">
+
+            <span id="speed-val">
+                0
+            </span>
+
+            <span class="speed-unit">
+                KM/H
+            </span>
+
         </div>
-      </div>
+
+
+        <!-- ----------------------------------------------------
+             PAUSE BUTTON
+             ---------------------------------------------------- -->
+
+        <button
+            id="btn-pause"
+            class="icon-btn"
+            type="button"
+            aria-label="Pause game"
+        ></button>
+
+
+        <!-- ----------------------------------------------------
+             VEHICLE INTERACTION
+             ---------------------------------------------------- -->
+
+        <button
+            id="btn-exit"
+            class="interact-btn hidden"
+            type="button"
+        >
+            EXIT VEHICLE
+        </button>
+
+        <button
+            id="btn-enter"
+            class="interact-btn hidden"
+            type="button"
+        >
+            ENTER VEHICLE
+        </button>
+
+
+        <!-- ----------------------------------------------------
+             CONTROLS
+             ---------------------------------------------------- -->
+
+        <div id="controls-layer">
+
+            <div id="steering-controls">
+
+                <button
+                    id="btn-left"
+                    class="control-btn dir-btn"
+                    type="button"
+                    aria-label="Steer left"
+                >
+                    ◀
+                </button>
+
+                <button
+                    id="btn-right"
+                    class="control-btn dir-btn"
+                    type="button"
+                    aria-label="Steer right"
+                >
+                    ▶
+                </button>
+
+            </div>
+
+
+            <div id="pedal-controls">
+
+                <button
+                    id="btn-brk"
+                    class="control-btn pedal-btn brake"
+                    type="button"
+                >
+                    BRK
+                </button>
+
+                <button
+                    id="btn-acc"
+                    class="control-btn pedal-btn accel"
+                    type="button"
+                >
+                    ACC
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- ----------------------------------------------------
+             PAUSE MENU
+             ---------------------------------------------------- -->
+
+        <div
+            id="pause-menu"
+            class="hidden"
+        >
+
+            <div class="pause-content">
+
+                <h2>
+                    PAUSED
+                </h2>
+
+                <button
+                    id="btn-resume"
+                    class="menu-btn primary"
+                    type="button"
+                >
+                    RESUME
+                </button>
+
+                <button
+                    id="btn-restart"
+                    class="menu-btn"
+                    type="button"
+                >
+                    RESTART
+                </button>
+
+                <button
+                    class="menu-btn disabled"
+                    type="button"
+                    disabled
+                >
+                    SETTINGS
+                </button>
+
+                <button
+                    class="menu-btn disabled"
+                    type="button"
+                    disabled
+                >
+                    QUIT
+                </button>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- ========================================================
+         LIBRARIES
+         ======================================================== -->
+
+    <script
+        src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+    ></script>
+
+
+    <!-- ========================================================
+         GAME SYSTEMS
+         ======================================================== -->
+
     <script src="js/core/SceneManager.js"></script>
     <script src="js/world/Neighborhood.js"></script>
+
     <script src="js/vehicles/Vehicle.js"></script>
+
     <script src="js/player/PlayerCharacter.js"></script>
+    <script src="js/player/PlayerCar.js"></script>
+
     <script src="js/ui/Controls.js"></script>
     <script src="js/ui/HUD.js"></script>
-    <script src="js/player/PlayerCar.js"></script>
+
     <script src="js/core/Game.js"></script>
     <script src="js/main.js"></script>
+
+
+    <!-- ========================================================
+         SERVICE WORKER
+         ======================================================== -->
 
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js', { scope: './' })
-                    .then(registration => console.log('SW registered:', registration.scope))
-                    .catch(error => console.log('SW registration failed:', error));
+                navigator.serviceWorker
+                    .register('./sw.js', {
+                        scope: './'
+                    })
+                    .then((registration) => {
+                        console.log(
+                            '[Neon Bay] Service Worker registered:',
+                            registration.scope
+                        );
+                    })
+                    .catch((error) => {
+                        console.warn(
+                            '[Neon Bay] Service Worker registration failed:',
+                            error
+                        );
+                    });
             });
         }
     </script>
+
 </body>
 </html>
