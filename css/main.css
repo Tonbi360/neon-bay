@@ -116,21 +116,32 @@ html, body {
     letter-spacing: 1px;
 }
 
-/* Pause Button */
-#btn-pause {
+/* Icon Buttons (Pause) */
+.icon-btn {
     position: absolute;
     top: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(10, 15, 20, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 50px;
+    height: 50px;
+    background: rgba(10, 15, 20, 0.8);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
     color: #fff;
-    width: 40px; height: 40px;
-    border-radius: 8px;
-    font-size: 18px;
+    font-size: 24px;
     cursor: pointer;
     pointer-events: auto;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    transition: all 0.2s;
+}
+
+.icon-btn:active {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateX(-50%) scale(0.9);
 }
 
 /* Controls Layer */
@@ -238,53 +249,44 @@ html, body {
     }
 }
 
-/* Interaction Prompt - Compact & Clean */
+/* Interaction Buttons - Compact */
 .interact-btn {
     position: absolute;
     bottom: 180px;
     left: 50%;
     transform: translateX(-50%);
-    
-    /* Compact sizing */
     width: auto;
-    min-width: 180px;
-    max-width: 240px;
-    padding: 12px 24px;
-    
-    /* Neon Bay dark glass style */
+    min-width: 140px;
+    max-width: 200px;
+    padding: 10px 20px;
     background: rgba(10, 15, 20, 0.9);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    border: 1px solid #00ffff;
+    border: 2px solid #00ffff;
     border-radius: 8px;
-    
-    /* Typography */
     color: #ffffff;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: bold;
     letter-spacing: 1px;
     text-transform: uppercase;
     white-space: nowrap;
-    
-    /* Effects */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 
-                0 0 15px rgba(0, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 255, 255, 0.3);
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
     z-index: 20;
-    
-    /* Animation */
     transition: all 0.2s ease;
-    opacity: 0;
-}
-
-.interact-btn.hidden {
     display: none;
     opacity: 0;
 }
 
+.interact-btn.hidden {
+    display: none !important;
+    opacity: 0;
+}
+
 .interact-btn:not(.hidden) {
+    display: block;
     opacity: 1;
 }
 
@@ -294,12 +296,12 @@ html, body {
     box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
 }
 
-/* Position Exit button slightly above Enter button if both could show (they won't) */
 #btn-exit {
-    bottom: 230px; 
+    bottom: 230px;
     border-color: #ff4444;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 68, 68, 0.3);
 }
+
 #btn-exit:active {
     background: rgba(255, 68, 68, 0.2);
     border-color: #ffffff;
