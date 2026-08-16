@@ -15,19 +15,18 @@ class SceneManager {
         this.init();
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // INITIALIZATION
-    // ------------------------------------------------------------
+    // ============================================================
 
     init() {
         this.createScene();
         this.createCamera();
         this.createRenderer();
-
         this.setupLights();
 
-        // The world is created here so every gameplay system can
-        // access the same neighborhood instance.
+        // The world is created here so every gameplay system
+        // shares the same Neighborhood instance.
         this.neighborhood = new Neighborhood(this.scene);
 
         this.setupResizeHandler();
@@ -35,13 +34,16 @@ class SceneManager {
         this.clock.start();
     }
 
+    // ============================================================
+    // SCENE
+    // ============================================================
+
     createScene() {
         this.scene = new THREE.Scene();
 
-        // Current Neon Bay visual direction.
+        // Neon Bay's current daytime visual direction.
         this.scene.background = new THREE.Color(0x87ceeb);
 
-        // Keep the existing neighborhood-scale fog.
         this.scene.fog = new THREE.Fog(
             0x87ceeb,
             80,
@@ -49,18 +51,37 @@ class SceneManager {
         );
     }
 
+    // ============================================================
+    // CAMERA
+    // ============================================================
+
     createCamera() {
+        const width = Math.max(window.innerWidth, 1);
+        const height = Math.max(window.innerHeight, 1);
+
         this.camera = new THREE.PerspectiveCamera(
             75,
-            window.innerWidth / window.innerHeight,
+            width / height,
             0.1,
             1000
         );
 
-        this.camera.position.set(0, 5, 10);
+        this.camera.position.set(
+            0,
+            5,
+            10
+        );
 
-        this.camera.lookAt(0, 0, 0);
+        this.camera.lookAt(
+            0,
+            0,
+            0
+        );
     }
+
+    // ============================================================
+    // RENDERER
+    // ============================================================
 
     createRenderer() {
         this.renderer = new THREE.WebGLRenderer({
@@ -73,10 +94,12 @@ class SceneManager {
             window.innerHeight
         );
 
-        // A cap of 1.5 gives us better mobile performance than
-        // rendering at extremely high device pixel ratios.
+        // Limit DPR for mobile performance.
         this.renderer.setPixelRatio(
-            Math.min(window.devicePixelRatio || 1, 1.5)
+            Math.min(
+                window.devicePixelRatio || 1,
+                1.5
+            )
         );
 
         this.renderer.shadowMap.enabled = true;
@@ -88,11 +111,12 @@ class SceneManager {
         );
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // LIGHTING
-    // ------------------------------------------------------------
+    // ============================================================
 
     setupLights() {
+        // Main directional sunlight.
         const dirLight =
             new THREE.DirectionalLight(
                 0xffffff,
@@ -107,6 +131,7 @@ class SceneManager {
 
         dirLight.castShadow = true;
 
+        // Shadow camera.
         dirLight.shadow.camera.left = -100;
         dirLight.shadow.camera.right = 100;
         dirLight.shadow.camera.top = 100;
@@ -117,6 +142,7 @@ class SceneManager {
 
         this.scene.add(dirLight);
 
+        // General ambient illumination.
         const ambientLight =
             new THREE.AmbientLight(
                 0x404040,
@@ -125,6 +151,7 @@ class SceneManager {
 
         this.scene.add(ambientLight);
 
+        // Sky/ground lighting.
         const hemiLight =
             new THREE.HemisphereLight(
                 0xffffbb,
@@ -135,9 +162,9 @@ class SceneManager {
         this.scene.add(hemiLight);
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // RESIZE
-    // ------------------------------------------------------------
+    // ============================================================
 
     setupResizeHandler() {
         this.resizeHandler = () => {
@@ -155,11 +182,14 @@ class SceneManager {
             return;
         }
 
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        const width =
+            Math.max(window.innerWidth, 1);
+
+        const height =
+            Math.max(window.innerHeight, 1);
 
         this.camera.aspect =
-            width / Math.max(height, 1);
+            width / height;
 
         this.camera.updateProjectionMatrix();
 
@@ -169,13 +199,13 @@ class SceneManager {
         );
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // TIME
-    // ------------------------------------------------------------
+    // ============================================================
 
     getDelta() {
-        // Prevent unusually large time steps after a tab/app
-        // suspension from launching vehicles or characters.
+        // Prevent huge physics jumps after the browser/app
+        // has been suspended.
         return Math.min(
             this.clock.getDelta(),
             0.05
@@ -187,12 +217,16 @@ class SceneManager {
         this.clock.start();
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // RENDERING
-    // ------------------------------------------------------------
+    // ============================================================
 
     render() {
-        if (!this.renderer || !this.scene || !this.camera) {
+        if (
+            !this.renderer ||
+            !this.scene ||
+            !this.camera
+        ) {
             return;
         }
 
@@ -202,14 +236,16 @@ class SceneManager {
         );
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // CLEANUP
-    // ------------------------------------------------------------
+    // ============================================================
 
     dispose() {
-        console.log('[SceneManager] Disposing');
+        console.log(
+            '[SceneManager] Disposing'
+        );
 
-        // Stop future timing.
+        // Stop clock.
         this.clock.stop();
 
         // Remove resize listener.
@@ -222,10 +258,11 @@ class SceneManager {
             this.resizeHandler = null;
         }
 
-        // Dispose world if it exposes cleanup.
+        // Dispose the world.
         if (
             this.neighborhood &&
-            typeof this.neighborhood.dispose === 'function'
+            typeof this.neighborhood.dispose ===
+                'function'
         ) {
             this.neighborhood.dispose();
         }
@@ -234,22 +271,24 @@ class SceneManager {
 
         // Dispose renderer.
         if (this.renderer) {
-            this.renderer.dispose();
-
-            // Release WebGL context resources where supported.
-            const renderLists =
-                this.renderer.renderLists;
-
-            if (
-                renderLists &&
-                typeof renderLists.dispose === 'function'
-            ) {
-                renderLists.dispose();
-            }
+            const renderer =
+                this.renderer;
 
             const canvas =
-                this.renderer.domElement;
+                renderer.domElement;
 
+            renderer.dispose();
+
+            // Dispose renderer render lists when supported.
+            if (
+                renderer.renderLists &&
+                typeof renderer.renderLists.dispose ===
+                    'function'
+            ) {
+                renderer.renderLists.dispose();
+            }
+
+            // Remove canvas from DOM.
             if (
                 canvas &&
                 canvas.parentNode === this.container
@@ -262,4 +301,4 @@ class SceneManager {
         this.camera = null;
         this.scene = null;
     }
-    }
+            }
