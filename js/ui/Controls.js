@@ -10,14 +10,18 @@ class Controls {
         this.buttons = {};
         this.listeners = [];
 
+        // Track active pointers so one finger releasing doesn't
+        // accidentally release another active control.
+        this.activePointers = new Map();
+
         this.setupButtons();
         this.setupKeyboard();
         this.setupFocusHandling();
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // BUTTON CONTROLS
-    // ------------------------------------------------------------
+    // ============================================================
 
     setupButtons() {
         const definitions = [
@@ -31,119 +35,143 @@ class Controls {
             const button = document.getElementById(id);
 
             if (!button) {
+                console.warn(
+                    `[Controls] Button not found: #${id}`
+                );
+
                 continue;
             }
 
             this.buttons[key] = button;
 
+            // Prevent browser gestures such as scrolling,
+            // dragging and text selection on game controls.
+            button.style.touchAction = 'none';
+
             const press = (event) => {
                 event.preventDefault();
                 event.stopPropagation();
 
+                const pointerId = event.pointerId;
+
+                this.activePointers.set(
+                    pointerId,
+                    key
+                );
+
                 this.setInput(key, true);
+
+                // Keep receiving pointer events even if the finger
+                // moves outside the button.
+                if (
+                    typeof button.setPointerCapture ===
+                    'function'
+                ) {
+                    try {
+                        button.setPointerCapture(pointerId);
+                    } catch (error) {
+                        // Pointer capture isn't supported/available
+                        // in every browser state.
+                    }
+                }
             };
 
             const release = (event) => {
                 event.preventDefault();
                 event.stopPropagation();
 
-                this.setInput(key, false);
+                const pointerId = event.pointerId;
+
+                const activeKey =
+                    this.activePointers.get(pointerId);
+
+                if (activeKey) {
+                    this.activePointers.delete(pointerId);
+
+                    // Only release this particular control.
+                    this.releasePointerInput(activeKey);
+                }
             };
 
-            // Touch
             button.addEventListener(
-                'touchstart',
-                press,
-                { passive: false }
-            );
-
-            button.addEventListener(
-                'touchend',
-                release,
-                { passive: false }
-            );
-
-            button.addEventListener(
-                'touchcancel',
-                release,
-                { passive: false }
-            );
-
-            // Mouse
-            button.addEventListener(
-                'mousedown',
+                'pointerdown',
                 press
             );
 
             button.addEventListener(
-                'mouseup',
+                'pointerup',
                 release
             );
 
             button.addEventListener(
-                'mouseleave',
+                'pointercancel',
+                release
+            );
+
+            button.addEventListener(
+                'lostpointercapture',
                 release
             );
 
             this.listeners.push(
                 {
                     element: button,
-                    type: 'touchstart',
-                    handler: press,
-                    options: { passive: false }
-                },
-                {
-                    element: button,
-                    type: 'touchend',
-                    handler: release,
-                    options: { passive: false }
-                },
-                {
-                    element: button,
-                    type: 'touchcancel',
-                    handler: release,
-                    options: { passive: false }
-                },
-                {
-                    element: button,
-                    type: 'mousedown',
+                    type: 'pointerdown',
                     handler: press
                 },
                 {
                     element: button,
-                    type: 'mouseup',
+                    type: 'pointerup',
                     handler: release
                 },
                 {
                     element: button,
-                    type: 'mouseleave',
+                    type: 'pointercancel',
+                    handler: release
+                },
+                {
+                    element: button,
+                    type: 'lostpointercapture',
                     handler: release
                 }
             );
         }
     }
 
-    // ------------------------------------------------------------
+    releasePointerInput(key) {
+        // Don't release the control if another pointer is still
+        // holding the same control.
+        for (const activeKey of this.activePointers.values()) {
+            if (activeKey === key) {
+                return;
+            }
+        }
+
+        this.setInput(key, false);
+    }
+
+    // ============================================================
     // KEYBOARD
-    // ------------------------------------------------------------
+    // ============================================================
 
     setupKeyboard() {
         this.keyDownHandler = (event) => {
-            const key = this.getInputFromKey(event.code);
+            const key =
+                this.getInputFromKey(event.code);
 
             if (!key) {
                 return;
             }
 
-            // Prevent arrows/space from scrolling the page while
-            // they're being used as game controls.
+            // Prevent browser scrolling while using game controls.
             event.preventDefault();
 
             this.setInput(key, true);
         };
 
         this.keyUpHandler = (event) => {
-            const key = this.getInputFromKey(event.code);
+            const key =
+                this.getInputFromKey(event.code);
 
             if (!key) {
                 return;
@@ -189,36 +217,39 @@ class Controls {
         }
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // INPUT STATE
-    // ------------------------------------------------------------
+    // ============================================================
 
     setInput(key, value) {
         if (!(key in this.input)) {
             return;
         }
 
-        this.input[key] = value;
+        this.input[key] = Boolean(value);
 
-        const button = this.buttons[key];
+        const button =
+            this.buttons[key];
 
         if (button) {
             button.classList.toggle(
                 'active',
-                value
+                this.input[key]
             );
         }
     }
 
     clearInput() {
+        this.activePointers.clear();
+
         for (const key of Object.keys(this.input)) {
             this.setInput(key, false);
         }
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // FOCUS / VISIBILITY
-    // ------------------------------------------------------------
+    // ============================================================
 
     setupFocusHandling() {
         this.blurHandler = () => {
@@ -242,16 +273,18 @@ class Controls {
         );
     }
 
-    // ------------------------------------------------------------
+    // ============================================================
     // CLEANUP
-    // ------------------------------------------------------------
+    // ============================================================
 
     dispose() {
-        console.log('[Controls] Disposing');
+        console.log(
+            '[Controls] Disposing'
+        );
 
         this.clearInput();
 
-        // Remove button listeners.
+        // Remove pointer listeners.
         for (const listener of this.listeners) {
             listener.element.removeEventListener(
                 listener.type,
@@ -300,6 +333,7 @@ class Controls {
             this.visibilityHandler = null;
         }
 
+        this.activePointers.clear();
         this.buttons = {};
     }
-                    }
+}
