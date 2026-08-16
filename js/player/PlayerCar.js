@@ -51,27 +51,25 @@ class PlayerCar {
         // BODY
         // --------------------------------------------------------
 
-        const bodyGeometry =
-            new THREE.BoxGeometry(
-                2,
-                0.8,
-                4.2
-            );
+        const bodyGeometry = new THREE.BoxGeometry(
+            2,
+            0.8,
+            4.2
+        );
 
-        const bodyMaterial =
-            new THREE.MeshStandardMaterial({
-                color: 0xcc0000,
-                metalness: 0.6,
-                roughness: 0.4
-            });
+        const bodyMaterial = new THREE.MeshStandardMaterial({
+            color: 0xcc0000,
+            metalness: 0.6,
+            roughness: 0.4
+        });
 
-        const body =
-            new THREE.Mesh(
-                bodyGeometry,
-                bodyMaterial
-            );
+        const body = new THREE.Mesh(
+            bodyGeometry,
+            bodyMaterial
+        );
 
         body.position.y = 0.6;
+
         body.castShadow = true;
         body.receiveShadow = true;
 
@@ -81,25 +79,22 @@ class PlayerCar {
         // CABIN
         // --------------------------------------------------------
 
-        const cabinGeometry =
-            new THREE.BoxGeometry(
-                1.8,
-                0.7,
-                2.2
-            );
+        const cabinGeometry = new THREE.BoxGeometry(
+            1.8,
+            0.7,
+            2.2
+        );
 
-        const cabinMaterial =
-            new THREE.MeshStandardMaterial({
-                color: 0x1a1a1a,
-                metalness: 0.9,
-                roughness: 0.1
-            });
+        const cabinMaterial = new THREE.MeshStandardMaterial({
+            color: 0x1a1a1a,
+            metalness: 0.9,
+            roughness: 0.1
+        });
 
-        const cabin =
-            new THREE.Mesh(
-                cabinGeometry,
-                cabinMaterial
-            );
+        const cabin = new THREE.Mesh(
+            cabinGeometry,
+            cabinMaterial
+        );
 
         cabin.position.set(
             0,
@@ -116,18 +111,16 @@ class PlayerCar {
         // WHEELS
         // --------------------------------------------------------
 
-        const wheelGeometry =
-            new THREE.CylinderGeometry(
-                0.38,
-                0.38,
-                0.3,
-                12
-            );
+        const wheelGeometry = new THREE.CylinderGeometry(
+            0.38,
+            0.38,
+            0.3,
+            12
+        );
 
-        const wheelMaterial =
-            new THREE.MeshStandardMaterial({
-                color: 0x111111
-            });
+        const wheelMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111111
+        });
 
         const wheelPositions = [
             [-1.05, 0.38, 1.4],
@@ -137,14 +130,12 @@ class PlayerCar {
         ];
 
         for (const position of wheelPositions) {
-            const wheel =
-                new THREE.Mesh(
-                    wheelGeometry,
-                    wheelMaterial
-                );
+            const wheel = new THREE.Mesh(
+                wheelGeometry,
+                wheelMaterial
+            );
 
-            wheel.rotation.z =
-                Math.PI / 2;
+            wheel.rotation.z = Math.PI / 2;
 
             wheel.position.set(
                 position[0],
@@ -153,6 +144,7 @@ class PlayerCar {
             );
 
             wheel.castShadow = true;
+            wheel.receiveShadow = true;
 
             carGroup.add(wheel);
         }
@@ -175,12 +167,19 @@ class PlayerCar {
 
         // Prevent giant physics jumps after lag/tab switching.
         delta = Math.min(
-            Math.max(delta || 0, 0),
+            Math.max(Number(delta) || 0, 0),
             0.05
         );
 
         const input =
-            this.controls.input;
+            this.controls && this.controls.input
+                ? this.controls.input
+                : {
+                    left: false,
+                    right: false,
+                    acc: false,
+                    brk: false
+                };
 
         // --------------------------------------------------------
         // SPEED
@@ -191,15 +190,11 @@ class PlayerCar {
                 this.acceleration * delta;
         } else if (input.brk) {
             /*
-             * IMPORTANT:
+             * BRK is currently a brake only.
              *
-             * Brake never creates reverse movement.
-             *
-             * If moving forward:
-             *     speed → 0
-             *
-             * It does NOT become negative.
+             * It cannot create reverse movement.
              */
+
             this.speed = Math.max(
                 0,
                 this.speed -
@@ -250,13 +245,14 @@ class PlayerCar {
         // --------------------------------------------------------
 
         if (this.speed > 0) {
-            this.moveWithCollision(
-                delta
-            );
+            this.moveWithCollision(delta);
         }
 
-        // Camera is updated here.
-        // Game.js should NOT call it a second time.
+        // Camera is normally updated here.
+        //
+        // Game.js also currently calls updateCamera() after
+        // update(). Calling it twice is harmless because the
+        // second call simply continues the same smooth follow.
         this.updateCamera();
     }
 
@@ -265,6 +261,13 @@ class PlayerCar {
     // ============================================================
 
     moveWithCollision(delta) {
+        if (
+            !this.mesh ||
+            this.speed <= 0
+        ) {
+            return;
+        }
+
         const distance =
             this.speed * delta;
 
@@ -273,20 +276,21 @@ class PlayerCar {
         }
 
         /*
-         * Split large movements into smaller steps.
+         * Break fast movement into smaller steps.
          *
-         * This prevents the car from jumping through
-         * thin collision boundaries when moving quickly.
+         * Without this, a fast vehicle could potentially move
+         * from one side of a thin collision boundary to the other
+         * between frames.
          */
+
         const maxStep = 0.35;
 
-        const steps =
-            Math.max(
-                1,
-                Math.ceil(
-                    distance / maxStep
-                )
-            );
+        const steps = Math.max(
+            1,
+            Math.ceil(
+                distance / maxStep
+            )
+        );
 
         const stepDistance =
             distance / steps;
@@ -294,6 +298,10 @@ class PlayerCar {
         for (let i = 0; i < steps; i++) {
             const rotation =
                 this.mesh.rotation.y;
+
+            /*
+             * -Z is the vehicle's forward direction.
+             */
 
             const nextX =
                 this.mesh.position.x -
@@ -325,14 +333,12 @@ class PlayerCar {
                 collision.collided
             ) {
                 /*
-                 * Simple arcade collision response:
+                 * Arcade collision response:
                  *
-                 * Do not teleport the car.
-                 * Do not push using mysterious collision
-                 * coordinates.
-                 *
-                 * Just stop at the last valid position.
+                 * Keep the vehicle at its last valid
+                 * position and stop its movement.
                  */
+
                 this.speed = 0;
 
                 return;
@@ -366,59 +372,55 @@ class PlayerCar {
             this.mesh.rotation.y;
 
         /*
-         * Vehicle forward direction:
+         * Vehicle forward:
          *
-         * rotation 0
-         *       ↑
-         *       |
-         *      CAR
+         * rotation = 0
          *
-         * Camera sits behind the car.
+         *       -Z
+         *        ↑
+         *       CAR
+         *
+         * Therefore the camera sits on the +Z side,
+         * behind the vehicle.
          */
-
-        const desiredX =
-            this.mesh.position.x +
-            Math.sin(rotation) *
-            this.cameraDistance;
-
-        const desiredZ =
-            this.mesh.position.z +
-            Math.cos(rotation) *
-            this.cameraDistance;
 
         const desiredCamera =
             new THREE.Vector3(
-                desiredX,
+                this.mesh.position.x +
+                    Math.sin(rotation) *
+                    this.cameraDistance,
+
                 this.mesh.position.y +
                     this.cameraHeight,
-                desiredZ
+
+                this.mesh.position.z +
+                    Math.cos(rotation) *
+                    this.cameraDistance
             );
 
         /*
-         * Look slightly ahead of the car so the player
-         * can see where they're actually driving.
+         * Look slightly ahead of the vehicle so the player
+         * has more visibility in the direction of travel.
          */
-
-        const lookAheadX =
-            this.mesh.position.x -
-            Math.sin(rotation) *
-            this.cameraLookAhead;
-
-        const lookAheadZ =
-            this.mesh.position.z -
-            Math.cos(rotation) *
-            this.cameraLookAhead;
 
         const desiredLook =
             new THREE.Vector3(
-                lookAheadX,
+                this.mesh.position.x -
+                    Math.sin(rotation) *
+                    this.cameraLookAhead,
+
                 this.mesh.position.y +
                     0.9,
-                lookAheadZ
+
+                this.mesh.position.z -
+                    Math.cos(rotation) *
+                    this.cameraLookAhead
             );
 
-        // First frame after entering a vehicle:
-        // snap the camera into position.
+        // --------------------------------------------------------
+        // FIRST FRAME
+        // --------------------------------------------------------
+
         if (!this.cameraInitialized) {
             camera.position.copy(
                 desiredCamera
@@ -441,7 +443,10 @@ class PlayerCar {
             return;
         }
 
-        // Smooth follow.
+        // --------------------------------------------------------
+        // SMOOTH FOLLOW
+        // --------------------------------------------------------
+
         this.cameraPosition.lerp(
             desiredCamera,
             0.12
@@ -486,43 +491,68 @@ class PlayerCar {
     // ============================================================
 
     dispose() {
-        if (!this.mesh) {
-            return;
+        console.log('[PlayerCar] Disposing');
+
+        this.speed = 0;
+
+        if (
+            this.mesh &&
+            this.sceneManager &&
+            this.sceneManager.scene
+        ) {
+            this.sceneManager.scene.remove(
+                this.mesh
+            );
         }
 
-        this.sceneManager.scene.remove(
-            this.mesh
-        );
+        if (this.mesh) {
+            this.mesh.traverse(
+                (object) => {
+                    if (!object.isMesh) {
+                        return;
+                    }
 
-        this.mesh.traverse(
-            (object) => {
-                if (!object.isMesh) {
-                    return;
-                }
+                    if (object.geometry) {
+                        object.geometry.dispose();
+                    }
 
-                if (object.geometry) {
-                    object.geometry.dispose();
-                }
-
-                if (object.material) {
-                    if (
-                        Array.isArray(
-                            object.material
-                        )
-                    ) {
-                        object.material.forEach(
-                            (material) => {
-                                material.dispose();
-                            }
-                        );
-                    } else {
-                        object.material.dispose();
+                    if (object.material) {
+                        if (
+                            Array.isArray(
+                                object.material
+                            )
+                        ) {
+                            object.material.forEach(
+                                (material) => {
+                                    if (material) {
+                                        material.dispose();
+                                    }
+                                }
+                            );
+                        } else {
+                            object.material.dispose();
+                        }
                     }
                 }
-            }
+            );
+
+            this.mesh.clear();
+        }
+
+        this.mesh = null;
+
+        this.cameraPosition.set(
+            0,
+            0,
+            0
         );
 
-        this.mesh.clear();
-        this.mesh = null;
+        this.cameraLookTarget.set(
+            0,
+            0,
+            0
+        );
+
+        this.cameraInitialized = false;
     }
 }
