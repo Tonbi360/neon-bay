@@ -31,61 +31,61 @@
 
     <!-- UI LAYER -->
     <div id="ui-layer">
-        <!-- Top HUD -->
-        <div id="hud-top">
-            <div id="hud-money" class="hud-item">
-                <span class="hud-icon">💰</span> <span id="money-val">$0</span>
-            </div>
-            <div id="hud-wanted" class="hud-item">
-                <span class="hud-icon">⭐</span><span class="empty">☆☆☆</span>
-            </div>
+      <!-- Top HUD -->
+      <div id="hud-top">
+        <div id="hud-money" class="hud-item">
+          <span class="hud-icon">💰</span> <span id="money-val">$0</span>
         </div>
-
-        <!-- Speedometer -->
-        <div id="hud-speed">
-            <span id="speed-val">0</span>
-            <span class="speed-unit">KM/H</span>
+        <div id="hud-wanted" class="hud-item">
+          <span class="hud-icon">⭐</span><span class="empty">☆☆☆</span>
         </div>
+      </div>
 
-        <!-- Pause Button -->
-        <button id="btn-pause" class="icon-btn">⏸</button>
+      <!-- Speedometer -->
+      <div id="hud-speed">
+        <span id="speed-val">0</span>
+        <span class="speed-unit">KM/H</span>
+      </div>
 
-        <!-- Interaction Prompts -->
-        <button id="btn-interact" class="interact-btn hidden">ENTER VEHICLE</button>
-        <button id="btn-exit" class="interact-btn hidden">EXIT VEHICLE</button>
+      <!-- Pause Button -->
+      <button id="btn-pause" class="icon-btn"></button>
 
-        <!-- Controls -->
-        <div id="controls-layer">
-            <div id="steering-controls">
-                <button id="btn-left" class="control-btn dir-btn">◀</button>
-                <button id="btn-right" class="control-btn dir-btn">▶</button>
-            </div>
-            <div id="pedal-controls">
-                <button id="btn-brk" class="control-btn pedal-btn brake">BRK</button>
-                <button id="btn-acc" class="control-btn pedal-btn accel">ACC</button>
-            </div>
+      <!-- Interaction Buttons -->
+      <button id="btn-exit" class="interact-btn hidden">EXIT VEHICLE</button>
+      <button id="btn-enter" class="interact-btn hidden">ENTER VEHICLE</button>
+
+      <!-- Controls -->
+      <div id="controls-layer">
+        <div id="steering-controls">
+          <button id="btn-left" class="control-btn dir-btn">◀</button>
+          <button id="btn-right" class="control-btn dir-btn">▶</button>
         </div>
-
-        <!-- Pause Menu -->
-        <div id="pause-menu" class="hidden">
-            <div class="pause-content">
-                <h2>PAUSED</h2>
-                <button id="btn-resume" class="menu-btn primary">RESUME</button>
-                <button id="btn-restart" class="menu-btn">RESTART</button>
-                <button class="menu-btn disabled">SETTINGS</button>
-                <button class="menu-btn disabled">QUIT</button>
-            </div>
+        <div id="pedal-controls">
+          <button id="btn-brk" class="control-btn pedal-btn brake">BRK</button>
+          <button id="btn-acc" class="control-btn pedal-btn accel">ACC</button>
         </div>
+      </div>
+
+      <!-- Pause Menu -->
+      <div id="pause-menu" class="hidden">
+        <div class="pause-content">
+          <h2>PAUSED</h2>
+          <button id="btn-resume" class="menu-btn primary">RESUME</button>
+          <button id="btn-restart" class="menu-btn">RESTART</button>
+          <button class="menu-btn disabled">SETTINGS</button>
+          <button class="menu-btn disabled">QUIT</button>
+        </div>
+      </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="js/core/SceneManager.js"></script>
     <script src="js/world/Neighborhood.js"></script>
     <script src="js/vehicles/Vehicle.js"></script>
+    <script src="js/player/PlayerCharacter.js"></script>
     <script src="js/ui/Controls.js"></script>
     <script src="js/ui/HUD.js"></script>
     <script src="js/player/PlayerCar.js"></script>
-    <script src="js/player/PlayerCharacter.js"></script>
     <script src="js/core/Game.js"></script>
     <script src="js/main.js"></script>
 
