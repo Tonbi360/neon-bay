@@ -9,34 +9,32 @@ class PlayerCharacter {
 
         this.mesh = new THREE.Group();
 
-        // The root represents the character's feet/world position.
+        // Root represents the character's feet/world position.
         this.mesh.position.set(0, 0, 0);
 
         // --------------------------------------------------------
         // PLACEHOLDER BODY
         // --------------------------------------------------------
 
-        const bodyGeometry =
-            new THREE.CylinderGeometry(
-                0.4,
-                0.4,
-                1.8,
-                8
-            );
+        const bodyGeometry = new THREE.CylinderGeometry(
+            0.4,
+            0.4,
+            1.8,
+            8
+        );
 
-        const bodyMaterial =
-            new THREE.MeshStandardMaterial({
-                color: 0x00ff00
-            });
+        const bodyMaterial = new THREE.MeshStandardMaterial({
+            color: 0x00ff00
+        });
 
-        const body =
-            new THREE.Mesh(
-                bodyGeometry,
-                bodyMaterial
-            );
+        const body = new THREE.Mesh(
+            bodyGeometry,
+            bodyMaterial
+        );
 
         body.position.y = 0.9;
         body.castShadow = true;
+        body.receiveShadow = true;
 
         this.mesh.add(body);
 
@@ -44,27 +42,27 @@ class PlayerCharacter {
         // HEAD
         // --------------------------------------------------------
 
-        const headGeometry =
-            new THREE.SphereGeometry(
-                0.35,
-                8,
-                8
-            );
+        const headGeometry = new THREE.SphereGeometry(
+            0.35,
+            8,
+            8
+        );
 
-        const head =
-            new THREE.Mesh(
-                headGeometry,
-                bodyMaterial
-            );
+        const head = new THREE.Mesh(
+            headGeometry,
+            bodyMaterial
+        );
 
         head.position.y = 1.9;
         head.castShadow = true;
+        head.receiveShadow = true;
 
         this.mesh.add(head);
 
+        // Add character to world.
         this.scene.add(this.mesh);
 
-        // Hidden while driving.
+        // Character starts inside the vehicle.
         this.mesh.visible = false;
 
         // --------------------------------------------------------
@@ -80,7 +78,10 @@ class PlayerCharacter {
 
         this.collisionRadius = 0.5;
 
-        // Camera
+        // --------------------------------------------------------
+        // CAMERA
+        // --------------------------------------------------------
+
         this.cameraPosition = new THREE.Vector3();
         this.cameraLookTarget = new THREE.Vector3();
 
@@ -96,24 +97,25 @@ class PlayerCharacter {
             return;
         }
 
-        // Protect against invalid time values.
+        // Protect against invalid or unusually large frame times.
         delta = Math.min(
-            Math.max(delta || 0, 0),
+            Math.max(Number(delta) || 0, 0),
             0.05
         );
 
+        // Make sure input always has the expected shape.
+        input = input || {};
+
         // --------------------------------------------------------
-        // FORWARD / BACKWARD
+        // MOVEMENT INPUT
         // --------------------------------------------------------
 
         if (input.acc) {
-            this.speed +=
-                this.acceleration * delta;
+            this.speed += this.acceleration * delta;
         } else if (input.brk) {
-            this.speed -=
-                this.deceleration * delta;
+            // In on-foot mode, BRK acts as backward movement.
+            this.speed -= this.deceleration * delta;
         } else {
-            // Natural slowing.
             this.applyFriction(delta);
         }
 
@@ -151,11 +153,15 @@ class PlayerCharacter {
         }
 
         // --------------------------------------------------------
-        // MOVEMENT
+        // MOVEMENT VECTOR
         // --------------------------------------------------------
 
-        const movement =
-            this.speed * delta;
+        const movement = this.speed * delta;
+
+        /*
+         * Neon Bay uses -Z as the character/vehicle forward
+         * direction.
+         */
 
         const nextX =
             this.mesh.position.x -
@@ -168,7 +174,7 @@ class PlayerCharacter {
             movement;
 
         // --------------------------------------------------------
-        // COLLISION
+        // WORLD COLLISION
         // --------------------------------------------------------
 
         if (
@@ -184,10 +190,15 @@ class PlayerCharacter {
                 );
 
             if (collision && collision.collided) {
+                // Stop immediately when hitting an obstacle.
                 this.speed = 0;
                 return;
             }
         }
+
+        // --------------------------------------------------------
+        // APPLY POSITION
+        // --------------------------------------------------------
 
         this.mesh.position.x = nextX;
         this.mesh.position.z = nextZ;
@@ -226,7 +237,6 @@ class PlayerCharacter {
             return;
         }
 
-        // Make sure world transforms are current.
         this.mesh.updateMatrixWorld(true);
 
         const rotation =
@@ -236,21 +246,16 @@ class PlayerCharacter {
         const distance = 6;
         const height = 3;
 
-        const targetX =
-            this.mesh.position.x +
-            Math.sin(rotation) *
-            distance;
-
-        const targetZ =
-            this.mesh.position.z +
-            Math.cos(rotation) *
-            distance;
-
         const desiredCamera =
             new THREE.Vector3(
-                targetX,
-                this.mesh.position.y + height,
-                targetZ
+                this.mesh.position.x +
+                    Math.sin(rotation) * distance,
+
+                this.mesh.position.y +
+                    height,
+
+                this.mesh.position.z +
+                    Math.cos(rotation) * distance
             );
 
         const desiredLook =
@@ -260,14 +265,18 @@ class PlayerCharacter {
                 this.mesh.position.z
             );
 
-        // First frame: avoid the camera slowly travelling from
-        // wherever the vehicle camera happened to be.
+        // --------------------------------------------------------
+        // FIRST CAMERA FRAME
+        // --------------------------------------------------------
+
         if (!this.cameraInitialized) {
             camera.position.copy(
                 desiredCamera
             );
 
-            camera.lookAt(desiredLook);
+            camera.lookAt(
+                desiredLook
+            );
 
             this.cameraPosition.copy(
                 desiredCamera
@@ -282,7 +291,10 @@ class PlayerCharacter {
             return;
         }
 
-        // Smooth camera movement.
+        // --------------------------------------------------------
+        // SMOOTH CAMERA
+        // --------------------------------------------------------
+
         this.cameraPosition.lerp(
             desiredCamera,
             0.12
@@ -310,17 +322,19 @@ class PlayerCharacter {
         vehiclePosition,
         vehicleRotation
     ) {
+        if (!vehiclePosition) {
+            return;
+        }
+
         /*
-         * Put the character beside the vehicle.
-         *
          * Vehicle forward direction:
          *
-         *          ↑
-         *          |
-         *        CAR
+         *              -Z
+         *               ↑
+         *             [CAR]
          *
-         * We place the character slightly to the
-         * driver's side and slightly toward the rear.
+         * Place the character beside the vehicle and
+         * slightly toward its rear.
          */
 
         const sideDistance = 1.8;
@@ -359,6 +373,8 @@ class PlayerCharacter {
 
         this.speed = 0;
 
+        // Force the next camera update to snap into
+        // the correct character position.
         this.cameraInitialized = false;
     }
 
@@ -375,10 +391,12 @@ class PlayerCharacter {
     // ------------------------------------------------------------
 
     setVisible(visible) {
-        this.mesh.visible = visible;
+        this.mesh.visible = Boolean(visible);
 
-        if (visible) {
+        if (this.mesh.visible) {
             this.cameraInitialized = false;
+        } else {
+            this.speed = 0;
         }
     }
 
@@ -387,7 +405,13 @@ class PlayerCharacter {
     // ------------------------------------------------------------
 
     dispose() {
-        this.scene.remove(this.mesh);
+        console.log('[PlayerCharacter] Disposing');
+
+        this.speed = 0;
+
+        if (this.scene && this.mesh) {
+            this.scene.remove(this.mesh);
+        }
 
         this.mesh.traverse((object) => {
             if (!object.isMesh) {
@@ -401,7 +425,11 @@ class PlayerCharacter {
             if (object.material) {
                 if (Array.isArray(object.material)) {
                     object.material.forEach(
-                        (material) => material.dispose()
+                        (material) => {
+                            if (material) {
+                                material.dispose();
+                            }
+                        }
                     );
                 } else {
                     object.material.dispose();
@@ -410,5 +438,9 @@ class PlayerCharacter {
         });
 
         this.mesh.clear();
+
+        this.cameraPosition.set(0, 0, 0);
+        this.cameraLookTarget.set(0, 0, 0);
+        this.cameraInitialized = false;
     }
-    }
+}
