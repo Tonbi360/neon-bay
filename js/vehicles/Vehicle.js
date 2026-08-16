@@ -11,8 +11,8 @@ class Vehicle {
         this.mesh.rotation.y = config.rotY || 0;
         this.scene.add(this.mesh);
 
-        // Register collision box with the world
-        this.neighborhood.addCollisionBox(
+        // Register collision box with the world and store reference
+        this.collisionBox = this.neighborhood.addCollisionBox(
             config.x, 
             config.z, 
             config.width || 2.2, 
@@ -65,5 +65,9 @@ class Vehicle {
 
     dispose() {
         this.scene.remove(this.mesh);
+        if (this.collisionBox) {
+            this.neighborhood.removeCollisionBox(this.collisionBox);
+            this.collisionBox = null;
+        }
     }
 }
