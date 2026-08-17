@@ -1,3 +1,4 @@
+
 * {
     margin: 0;
     padding: 0;
@@ -27,13 +28,17 @@ html, body {
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: #0a0f14;
-    display: flex;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     transition: opacity 0.5s;
 }
+#loading-screen { display: flex; }
 #loading-screen.hidden { opacity: 0; pointer-events: none; }
+/* Hidden by default so it never flashes on top of the loading
+   screen before Game.js has had a chance to run. Game.js sets
+   display:flex explicitly via showError(). */
+#error-screen { display: none; }
 .game-title {
     font-size: clamp(32px, 8vw, 64px);
     font-weight: 900;
