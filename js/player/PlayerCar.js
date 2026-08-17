@@ -18,6 +18,10 @@ class PlayerCar {
         this.brakeStrength = 30;
         this.friction = 7;
 
+        // Reverse is slower than driving forward.
+        this.maxReverseSpeed = 6;
+        this.reverseAcceleration = 10;
+
         // Radians / second.
         this.steerSpeed = 1.8;
 
@@ -190,22 +194,34 @@ class PlayerCar {
                 this.acceleration * delta;
         } else if (input.brk) {
             /*
-             * BRK is currently a brake only.
-             *
-             * It cannot create reverse movement.
+             * BRK first brings the car to a stop like a real
+             * brake pedal. Once fully stopped, continuing to
+             * hold BRK shifts into reverse.
              */
 
-            this.speed = Math.max(
-                0,
-                this.speed -
-                this.brakeStrength * delta
-            );
-        } else {
-            // Natural rolling resistance.
             if (this.speed > 0) {
                 this.speed = Math.max(
                     0,
                     this.speed -
+                    this.brakeStrength * delta
+                );
+            } else {
+                this.speed -=
+                    this.reverseAcceleration * delta;
+            }
+        } else {
+            // Natural rolling resistance toward zero,
+            // from either direction.
+            if (this.speed > 0) {
+                this.speed = Math.max(
+                    0,
+                    this.speed -
+                    this.friction * delta
+                );
+            } else if (this.speed < 0) {
+                this.speed = Math.min(
+                    0,
+                    this.speed +
                     this.friction * delta
                 );
             }
@@ -213,11 +229,11 @@ class PlayerCar {
 
         this.speed = THREE.MathUtils.clamp(
             this.speed,
-            0,
+            -this.maxReverseSpeed,
             this.maxSpeed
         );
 
-        if (this.speed < 0.01) {
+        if (Math.abs(this.speed) < 0.01) {
             this.speed = 0;
         }
 
@@ -225,18 +241,23 @@ class PlayerCar {
         // STEERING
         // --------------------------------------------------------
 
-        if (this.speed > 0.05) {
+        if (Math.abs(this.speed) > 0.05) {
             const steeringAmount =
                 this.steerSpeed * delta;
 
+            // Steering direction mirrors when reversing,
+            // matching how a real car handles in reverse.
+            const direction =
+                this.speed >= 0 ? 1 : -1;
+
             if (input.left) {
                 this.mesh.rotation.y +=
-                    steeringAmount;
+                    steeringAmount * direction;
             }
 
             if (input.right) {
                 this.mesh.rotation.y -=
-                    steeringAmount;
+                    steeringAmount * direction;
             }
         }
 
@@ -244,7 +265,7 @@ class PlayerCar {
         // MOVEMENT
         // --------------------------------------------------------
 
-        if (this.speed > 0) {
+        if (this.speed !== 0) {
             this.moveWithCollision(delta);
         }
 
@@ -263,7 +284,7 @@ class PlayerCar {
     moveWithCollision(delta) {
         if (
             !this.mesh ||
-            this.speed <= 0
+            this.speed === 0
         ) {
             return;
         }
@@ -271,7 +292,7 @@ class PlayerCar {
         const distance =
             this.speed * delta;
 
-        if (distance <= 0) {
+        if (distance === 0) {
             return;
         }
 
@@ -281,6 +302,9 @@ class PlayerCar {
          * Without this, a fast vehicle could potentially move
          * from one side of a thin collision boundary to the other
          * between frames.
+         *
+         * distance can be negative when reversing, so step off
+         * its magnitude but keep stepDistance signed.
          */
 
         const maxStep = 0.35;
@@ -288,7 +312,7 @@ class PlayerCar {
         const steps = Math.max(
             1,
             Math.ceil(
-                distance / maxStep
+                Math.abs(distance) / maxStep
             )
         );
 
@@ -555,4 +579,5 @@ class PlayerCar {
 
         this.cameraInitialized = false;
     }
-}
+            }
+            
