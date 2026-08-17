@@ -1,4 +1,10 @@
-const CACHE_NAME = 'neon-bay-v1';
+// Bump this string on every deploy. The cache-first strategy
+// below means clients who already installed an older service
+// worker will keep serving stale/mismatched files forever
+// unless this name changes, since that's what triggers the
+// browser to install + activate a new worker and drop the
+// old cache.
+const CACHE_NAME = 'neon-bay-v2';
 const CORE_ASSETS = [
     './',
     './index.html',
