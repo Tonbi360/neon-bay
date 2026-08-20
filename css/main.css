@@ -293,3 +293,15 @@ html, body {
     background: rgba(0, 255, 255, 0.2);
     box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
 }
+
+/* Position Exit button slightly above Enter button if both could show (they won't) */
+#btn-exit {
+    bottom: 230px; 
+    border-color: #ff4444;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 0 0 15px rgba(255, 68, 68, 0.3);
+}
+#btn-exit:active {
+    background: rgba(255, 68, 68, 0.2);
+    border-color: #ffffff;
+    box-shadow: 0 0 25px rgba(255, 68, 68, 0.6);
+}
