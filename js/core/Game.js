@@ -5,16 +5,40 @@ class Game {
         this.errorScreen = document.getElementById('error-screen');
         this.retryBtn = document.getElementById('retry-btn');
         
+        // UI Elements
+        this.btnInteract = document.getElementById('btn-interact');
+        
         this.sceneManager = null;
         this.controls = null;
         this.playerCar = null;
+        this.targetVehicle = null;
         this.hud = null;
         
         this.isRunning = false;
         this.isPaused = false;
         this.isLoaded = false;
+
+        // Interaction radius - must be VERY close
+        this.INTERACTION_RADIUS = 3.5;
         
         this.retryBtn.addEventListener('click', () => this.restart());
+        this.setupInteraction();
+    }
+
+    setupInteraction() {
+        // Button tap handler (harmless for now)
+        if (this.btnInteract) {
+            this.btnInteract.addEventListener('click', (e) => {
+                e.preventDefault();
+                console.log('[VehicleInteraction] Target vehicle selected');
+                // In NB-010: this will trigger vehicle theft
+            });
+            
+            // Prevent touch bleeding
+            this.btnInteract.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: false });
+        }
     }
     
     async init() {
@@ -47,7 +71,11 @@ class Game {
             );
 
             this.hud = new HUD(this);
-            
+            // Ensure prompt is hidden on load
+            if (this.btnInteract) {
+                this.btnInteract.classList.add('hidden');
+            }
+
             setTimeout(() => {
                 this.loadingScreen.classList.add('hidden');
                 this.isLoaded = true;
@@ -89,6 +117,9 @@ class Game {
         if (this.playerCar) {
             this.playerCar.update(delta);
             this.hud.updateSpeed(this.playerCar.speed);
+            
+            // Check vehicle interaction
+            this.updateInteraction();
         }
         
         this.sceneManager.render();
@@ -97,6 +128,20 @@ class Game {
     showError() {
         this.loadingScreen.style.display = 'none';
         this.errorScreen.classList.add('show');
+    }
+
+    updateInteraction() {
+        if (!this.playerCar || !this.targetVehicle || !this.btnInteract) return;
+
+        // Calculate distance
+        const dist = this.playerCar.getPosition().distanceTo(this.targetVehicle.mesh.position);
+
+        // Show/hide prompt based on distance
+        if (dist <= this.INTERACTION_RADIUS) {
+            this.btnInteract.classList.remove('hidden');
+        } else {
+            this.btnInteract.classList.add('hidden');
+        }
     }
     
     hideError() {
@@ -113,6 +158,11 @@ class Game {
         this.isPaused = false;
         this.isLoaded = false;
         
+        // Hide prompt on restart
+        if (this.btnInteract) {
+            this.btnInteract.classList.add('hidden');
+        }
+
         await this.init();
     }
 }

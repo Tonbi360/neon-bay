@@ -237,3 +237,59 @@ html, body {
         text-align: center; padding: 20px; pointer-events: none;
     }
 }
+
+/* Interaction Prompt - Compact & Clean */
+.interact-btn {
+    position: absolute;
+    bottom: 180px;
+    left: 50%;
+    transform: translateX(-50%);
+    
+    /* Compact sizing */
+    width: auto;
+    min-width: 180px;
+    max-width: 240px;
+    padding: 12px 24px;
+    
+    /* Neon Bay dark glass style */
+    background: rgba(10, 15, 20, 0.9);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid #00ffff;
+    border-radius: 8px;
+    
+    /* Typography */
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    
+    /* Effects */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), 
+                0 0 15px rgba(0, 255, 255, 0.3);
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
+    z-index: 20;
+    
+    /* Animation */
+    transition: all 0.2s ease;
+    opacity: 0;
+}
+
+.interact-btn.hidden {
+    display: none;
+    opacity: 0;
+}
+
+.interact-btn:not(.hidden) {
+    opacity: 1;
+}
+
+.interact-btn:active {
+    transform: translateX(-50%) scale(0.95);
+    background: rgba(0, 255, 255, 0.2);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.6);
+}
